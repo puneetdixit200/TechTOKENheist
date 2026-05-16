@@ -228,6 +228,8 @@ const LandingScreen = () => {
         '--rain-drift-y': `${rainDriftY}px`,
         '--rain-drift-x-mid': `${rainDriftX * 0.55}px`,
         '--rain-drift-y-mid': `${rainDriftY * 0.4}px`,
+        '--landing-mouse-x': `${safeMouseX}px`,
+        '--landing-mouse-y': `${safeMouseY}px`,
       }}
     >
       <audio ref={audioRef} src={songMp3} loop />
@@ -493,6 +495,7 @@ const LandingScreen = () => {
                   background: `radial-gradient(circle at ${mousePos.x}px ${mousePos.y}px, rgba(255, 0, 0, 0.4), transparent 400px)`
                 }}></div>
               </div>
+              <div className="reol-black-lightning" aria-hidden="true" />
               <div className="reol-typography">
                 <motion.h1 className="reol-title"
                   initial={{ filter: 'blur(20px)', opacity: 0, x: -50 }}
@@ -556,10 +559,10 @@ const LandingScreen = () => {
                     textShadow: { duration: 3, repeat: Infinity, ease: "easeInOut" }
                   }}
                 >WE WELCOME YOU!</motion.h1>
-                <motion.h2 className="berlin-subtitle"
+                <motion.h2 className="berlin-subtitle berlin-subtitle--cta"
                   initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={finaleMotion.viewport} transition={{ duration: 0.75, delay: 0.18 }}
                 >THROW THE DICE</motion.h2>
-                <motion.h2 className="berlin-subtitle"
+                <motion.h2 className="berlin-subtitle berlin-subtitle--cta"
                   initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={finaleMotion.viewport} transition={{ duration: 0.75, delay: 0.32 }}
                 >LET THE HEIST BEGIN</motion.h2>
 

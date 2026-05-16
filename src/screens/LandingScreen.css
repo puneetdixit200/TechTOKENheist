@@ -1414,6 +1414,31 @@ html.landing-scroll-mode {
   }
 }
 
+@keyframes reolLightningFlicker {
+  0%,
+  14%,
+  100% {
+    filter: drop-shadow(0 0 7px rgba(255, 255, 255, 0.78)) drop-shadow(0 0 22px rgba(255, 255, 255, 0.34));
+  }
+
+  4%,
+  8%,
+  56% {
+    filter: drop-shadow(0 0 14px rgba(255, 255, 255, 1)) drop-shadow(0 0 42px rgba(255, 255, 255, 0.72));
+  }
+
+  6%,
+  62% {
+    opacity: 0.28;
+  }
+
+  10%,
+  58%,
+  64% {
+    opacity: 1;
+  }
+}
+
 @keyframes borderDraw {
   0% {
     border-color: transparent;
@@ -1905,6 +1930,54 @@ html.landing-scroll-mode {
   mix-blend-mode: color-dodge;
   z-index: 2;
 }
+
+.reol-black-lightning {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 48vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0;
+  mix-blend-mode: screen;
+  background:
+    radial-gradient(220px circle at var(--landing-mouse-x, 72vw) var(--landing-mouse-y, 50vh), rgba(255, 255, 255, 0.46), rgba(255, 255, 255, 0.13) 34%, transparent 72%),
+    linear-gradient(112deg, transparent 0 25%, rgba(255, 255, 255, 0.72) 25.4% 26.1%, transparent 26.5% 100%),
+    linear-gradient(68deg, transparent 0 51%, rgba(255, 255, 255, 0.62) 51.2% 51.9%, transparent 52.4% 100%),
+    linear-gradient(126deg, transparent 0 66%, rgba(255, 255, 255, 0.52) 66.2% 66.8%, transparent 67.3% 100%);
+  filter: drop-shadow(0 0 7px rgba(255, 255, 255, 0.86)) drop-shadow(0 0 24px rgba(255, 255, 255, 0.42));
+  transition: opacity 0.14s ease-out;
+}
+
+.finale-reol:hover .reol-black-lightning {
+  opacity: 0.92;
+  animation: reolLightningFlicker 1.25s steps(1, end) infinite;
+}
+
+.reol-black-lightning::before,
+.reol-black-lightning::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.72;
+}
+
+.reol-black-lightning::before {
+  background:
+    linear-gradient(142deg, transparent 0 42%, rgba(255, 255, 255, 0.9) 42.2% 42.8%, transparent 43.2% 100%),
+    linear-gradient(22deg, transparent 0 58%, rgba(255, 255, 255, 0.46) 58.2% 59%, transparent 59.4% 100%);
+  clip-path: polygon(26% 0, 100% 0, 100% 72%, 68% 100%, 18% 100%, 0 44%);
+}
+
+.reol-black-lightning::after {
+  background:
+    radial-gradient(180px circle at var(--landing-mouse-x, 72vw) var(--landing-mouse-y, 50vh), rgba(255, 255, 255, 0.34), transparent 70%),
+    repeating-linear-gradient(90deg, transparent 0 42px, rgba(255, 255, 255, 0.12) 43px, transparent 45px);
+  filter: blur(2px);
+}
+
 .reol-typography {
   position: absolute;
   right: 10vw;
@@ -1986,6 +2059,18 @@ html.landing-scroll-mode {
   font-size: 1.15rem;
   color: #aaa;
   margin: 0;
+}
+
+.berlin-subtitle--cta {
+  width: fit-content;
+  max-width: min(88vw, 38rem);
+  padding: 0.38rem 1.05rem;
+  color: rgba(255, 255, 255, 0.98);
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.76), rgba(0, 0, 0, 0.48), rgba(0, 0, 0, 0.76));
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 0 22px rgba(0, 0, 0, 0.88), inset 0 0 18px rgba(255, 255, 255, 0.05);
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.76), 0 0 26px rgba(255, 16, 16, 0.55), 0 3px 10px rgba(0, 0, 0, 0.95);
+  text-transform: uppercase;
 }
 
 .heist-btn-animated {
@@ -2086,6 +2171,10 @@ html.landing-scroll-mode {
     opacity: 0.9;
   }
 
+  .reol-black-lightning {
+    display: none;
+  }
+
   .reol-image {
     object-position: center 26%;
     filter: brightness(0.62) contrast(1.18) saturate(1.02);
@@ -2140,6 +2229,15 @@ html.landing-scroll-mode {
   .berlin-subtitle {
     font-size: 0.82rem;
     color: rgba(230, 238, 240, 0.72);
+  }
+
+  .berlin-subtitle--cta {
+    max-width: 100%;
+    padding: 0.32rem 0.7rem;
+    color: rgba(255, 255, 255, 0.98);
+    background: rgba(0, 0, 0, 0.62);
+    text-align: center;
+    line-height: 1.28;
   }
 
   .berlin-typography .berlin-title,
