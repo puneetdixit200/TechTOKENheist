@@ -1,0 +1,7 @@
+project_id = "techtokenheist"
+
+[functions.game-actions]
+verify_jwt = false
+
+[functions.public-state]
+verify_jwt = false
