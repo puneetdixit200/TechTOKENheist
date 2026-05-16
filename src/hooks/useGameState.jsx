@@ -3,6 +3,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { queryClient } from '../lib/queryClient'
 import supabase, { hasSupabaseConfig } from '../lib/supabase'
+import { fetchPublicStateRows } from '../lib/publicState'
 import { buildConstraintsFromHistory } from '../utils/matchmaking'
 import { getProfileAvatar } from '../data/profileAvatars'
 
@@ -340,42 +341,15 @@ const useGameSocketBridge = () => {
 
       fetchInFlight = true
       try {
-        // Run all queries in parallel for the fastest "no lag" response
-        const [
-          { data: systemRows, error: sysErr },
-          { data: teamsRows, error: teamErr },
-          { data: queueRows, error: queueErr },
-          { data: matchRows, error: matchErr },
-          { data: historyRows, error: histErr },
-          { data: notificationRows, error: notifErr },
-          { data: tokenHistory, error: tokErr }
-        ] = await Promise.all([
-          supabase.from('system').select('*').eq('key', 'game'),
-          supabase.from('teams').select('*').order('name', { ascending: true }),
-          supabase.from('matchmaking_queue').select('*'),
-          supabase.from('active_matches').select('*'),
-          supabase.from('match_history').select('*'),
-          supabase.from('notifications').select('*'),
-          supabase.from('token_history').select('*')
-        ]);
-
-        const queryErrors = [
-          ['system', sysErr],
-          ['teams', teamErr],
-          ['matchmaking_queue', queueErr],
-          ['active_matches', matchErr],
-          ['match_history', histErr],
-          ['notifications', notifErr],
-          ['token_history', tokErr],
-        ].filter(([, err]) => Boolean(err))
-
-        if (queryErrors.length > 0) {
-          console.group('Supabase public state fetch errors')
-          queryErrors.forEach(([tableName, err]) => {
-            console.error(`${tableName} error:`, err)
-          })
-          console.groupEnd()
-        }
+        const {
+          systemRows,
+          teamsRows,
+          queueRows,
+          matchRows,
+          historyRows,
+          notificationRows,
+          tokenHistory,
+        } = await fetchPublicStateRows(supabase)
 
         const system = (systemRows && systemRows[0]) || {}
 

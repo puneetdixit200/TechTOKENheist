@@ -1,7 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
+import { resolveSupabaseKey } from './supabaseConfig'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY
+const supabaseKey = resolveSupabaseKey(import.meta.env)
 export const hasSupabaseConfig = Boolean(supabaseUrl && supabaseKey)
 const missingSupabaseConfig = !hasSupabaseConfig
 
