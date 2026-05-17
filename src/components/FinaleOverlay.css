@@ -1330,3 +1330,346 @@
     right: 20px;
   }
 }
+
+/* ═══════════════════════════════════════════════════
+   CINEMATIC CHAMPIONSHIP VICTORY ADDITIONS
+   ═══════════════════════════════════════════════════ */
+
+/* Canvas overlay */
+.celebration-particles-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: auto;
+  z-index: 18;
+  cursor: pointer;
+}
+
+/* Screen Bass Shake */
+.victory-bass-shake {
+  animation: bassShakeFrames 0.5s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+@keyframes bassShakeFrames {
+  0%, 100% { transform: scale(1) translate(0, 0); }
+  10%, 30%, 50%, 70%, 90% { transform: scale(1.025) translate(-4px, -3px) rotate(-0.5deg); }
+  20%, 40%, 60%, 80% { transform: scale(1.025) translate(4px, 3px) rotate(0.5deg); }
+}
+
+/* Heavy Chromatic Glitch Shift */
+.victory-heavy-glitch {
+  animation: heavyGlitchFrames 0.3s steps(2) infinite;
+}
+
+@keyframes heavyGlitchFrames {
+  0% { filter: hue-rotate(0deg) saturate(1.8) contrast(1.1); }
+  33% { filter: hue-rotate(120deg) saturate(2.2) contrast(1.3); }
+  66% { filter: hue-rotate(240deg) saturate(1.8) contrast(0.95); }
+  100% { filter: hue-rotate(360deg) saturate(1.8) contrast(1.1); }
+}
+
+/* Championship HUD Card Container */
+.victory-content-card {
+  position: relative;
+  background: rgba(4, 4, 9, 0.88);
+  border: 2px solid rgba(253, 216, 53, 0.45);
+  border-radius: 24px;
+  padding: 50px 70px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 20;
+  backdrop-filter: blur(20px);
+  box-shadow: 
+    0 30px 80px rgba(0, 0, 0, 0.95),
+    0 0 50px rgba(253, 216, 53, 0.25),
+    inset 0 0 40px rgba(253, 216, 53, 0.12);
+  max-width: 90%;
+  width: 680px;
+  text-align: center;
+  animation: cardPulseEntry 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes cardPulseEntry {
+  0% { transform: scale(0.7) translateY(50px); opacity: 0; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.victory-card-glow-back {
+  position: absolute;
+  inset: -10px;
+  border-radius: 34px;
+  background: radial-gradient(circle, rgba(253, 216, 53, 0.15) 0%, transparent 70%);
+  filter: blur(15px);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Strobe Overlay */
+.victory-strobe-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 12;
+  mix-blend-mode: color-dodge;
+  transition: background-color 0.15s ease-out;
+}
+
+/* Laser Sweeps */
+.victory-laser-sweeps {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 13;
+  overflow: hidden;
+}
+
+.laser-beam {
+  position: absolute;
+  width: 160%;
+  height: 4px;
+  top: 50%;
+  left: -30%;
+  transform: rotate(-12deg);
+  box-shadow: 0 0 30px 8px currentColor;
+  opacity: 0.9;
+  animation: laserSweep 6s linear infinite;
+}
+
+.laser-red {
+  color: #ff003c;
+  animation-delay: 0s;
+  animation-duration: 4.5s;
+}
+
+.laser-blue {
+  color: #00d2ff;
+  animation-delay: 2s;
+  animation-duration: 5.5s;
+}
+
+.laser-gold {
+  color: #fdd835;
+  animation-delay: 4s;
+  animation-duration: 7.5s;
+}
+
+@keyframes laserSweep {
+  0% { transform: translateY(-60vh) rotate(-12deg); opacity: 0; }
+  15% { opacity: 0.9; }
+  85% { opacity: 0.9; }
+  100% { transform: translateY(60vh) rotate(-12deg); opacity: 0; }
+}
+
+/* Giant background scrolling marquee typography */
+.victory-glitch-ticker-bg {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16vh;
+  opacity: 0.05;
+  pointer-events: none;
+  z-index: 10;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 8.5vw;
+  font-weight: 900;
+  letter-spacing: 20px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.ticker-bg-row {
+  display: inline-block;
+  animation: infiniteScrollBg 24s linear infinite;
+}
+
+.row-right {
+  animation-direction: reverse;
+  color: #00d2ff;
+}
+
+.row-left {
+  color: #ff003c;
+}
+
+@keyframes infiniteScrollBg {
+  0% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-33.333%, 0, 0); }
+}
+
+/* Muzzle flash & recoil poppers */
+.party-popper-cannon {
+  position: absolute;
+  bottom: -30px;
+  width: 160px;
+  height: 200px;
+  pointer-events: none;
+  z-index: 22;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  transition: all 0.5s ease;
+}
+
+.cannon-left {
+  left: -20px;
+  transform: rotate(38deg);
+  animation: popperLeftAnim 3.8s infinite alternate ease-in-out;
+}
+
+.cannon-right {
+  right: -20px;
+  transform: rotate(-38deg);
+  animation: popperRightAnim 3.8s infinite alternate ease-in-out;
+}
+
+.cannon-barrel {
+  width: 48px;
+  height: 120px;
+  background: linear-gradient(135deg, #181822 0%, #08080c 100%);
+  border: 4px solid #fdd835;
+  border-bottom: none;
+  border-radius: 14px 14px 0 0;
+  position: relative;
+  box-shadow: 
+    0 0 25px rgba(253, 216, 53, 0.45),
+    inset 0 0 15px rgba(253, 216, 53, 0.1);
+}
+
+.cannon-barrel::before {
+  content: '';
+  position: absolute;
+  top: 12px;
+  left: 6px;
+  right: 6px;
+  height: 10px;
+  background: #ff003c;
+  box-shadow: 0 0 10px #ff003c;
+}
+
+.cannon-barrel::after {
+  content: '';
+  position: absolute;
+  top: 30px;
+  left: 6px;
+  right: 6px;
+  height: 10px;
+  background: #00d2ff;
+  box-shadow: 0 0 10px #00d2ff;
+}
+
+.cannon-base {
+  width: 90px;
+  height: 45px;
+  background: #0b0b0e;
+  border: 4px solid rgba(255, 255, 255, 0.18);
+  border-radius: 55px 55px 0 0;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.6);
+}
+
+.cannon-muzzle-flash {
+  position: absolute;
+  top: -45px;
+  width: 90px;
+  height: 90px;
+  background: radial-gradient(circle, rgba(253, 216, 53, 0.98) 0%, rgba(255, 0, 60, 0.4) 40%, transparent 70%);
+  border-radius: 50%;
+  opacity: 0;
+  transform: scale(0.2);
+  animation: popperMuzzleFlash 3.8s infinite ease-out;
+}
+
+.cannon-right .cannon-muzzle-flash {
+  animation-delay: 1.9s;
+  background: radial-gradient(circle, rgba(253, 216, 53, 0.98) 0%, rgba(0, 210, 255, 0.4) 40%, transparent 70%);
+}
+
+@keyframes popperLeftAnim {
+  0% { transform: rotate(26deg) scale(0.88); }
+  9% { transform: rotate(24deg) scale(0.8); } /* heavy recoil */
+  16% { transform: rotate(44deg) scale(1.22); } /* launch force */
+  28% { transform: rotate(38deg) scale(1); }
+  100% { transform: rotate(38deg) scale(1); }
+}
+
+@keyframes popperRightAnim {
+  0% { transform: rotate(-26deg) scale(0.88); }
+  9% { transform: rotate(-24deg) scale(0.8); } /* heavy recoil */
+  16% { transform: rotate(-44deg) scale(1.22); } /* launch force */
+  28% { transform: rotate(-38deg) scale(1); }
+  100% { transform: rotate(-38deg) scale(1); }
+}
+
+@keyframes popperMuzzleFlash {
+  0% { opacity: 0; transform: scale(0.1) rotate(0deg); }
+  8% { opacity: 0; transform: scale(0.1); }
+  9% { opacity: 1; transform: scale(1.4) rotate(45deg); }
+  22% { opacity: 0; transform: scale(0.6) rotate(90deg); }
+  100% { opacity: 0; }
+}
+
+/* Winner Name Pulsing & Glitch text wrapper */
+.victory-winner-name-glow {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 88px;
+  font-weight: 900;
+  letter-spacing: 8px;
+  color: #ffffff;
+  text-transform: uppercase;
+  margin-bottom: 22px;
+  text-shadow: 
+    0 0 25px rgba(255, 255, 255, 0.9),
+    0 0 50px rgba(253, 216, 53, 0.7),
+    0 0 90px rgba(253, 216, 53, 0.4);
+  animation: textScalePulse 1.9s infinite alternate ease-in-out;
+}
+
+.victory-title-wrapper {
+  margin-bottom: 20px;
+}
+
+.victory-title-glitch {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: 16px;
+  color: #fdd835;
+  text-transform: uppercase;
+  position: relative;
+  text-shadow: 0 0 18px rgba(253, 216, 53, 0.75);
+  animation: victoryTitleGlitch 3.2s infinite steps(2);
+}
+
+@keyframes victoryTitleGlitch {
+  0%, 92% { transform: skewX(0deg); filter: none; }
+  93% { transform: skewX(16deg) scaleY(0.9); filter: hue-rotate(85deg) saturate(1.8); }
+  95% { transform: skewX(-14deg) scaleY(1.1); filter: invert(0.9) brightness(1.2); }
+  97% { transform: skewX(0deg); filter: none; }
+}
+
+.victory-click-hint {
+  margin-top: 25px;
+  font-size: 11px;
+  color: rgba(253, 216, 53, 0.75);
+  letter-spacing: 4px;
+  animation: pulseHint 1.6s infinite alternate ease-in-out;
+}
+
+@keyframes pulseHint {
+  0% { opacity: 0.35; transform: scale(0.97); }
+  100% { opacity: 0.95; transform: scale(1.03); }
+}
+
+/* Roster glow alignments */
+.glow-crimson {
+  text-shadow: 0 0 15px rgba(255, 0, 60, 0.75);
+}
+
+.glow-cyan {
+  text-shadow: 0 0 15px rgba(0, 210, 255, 0.75);
+}

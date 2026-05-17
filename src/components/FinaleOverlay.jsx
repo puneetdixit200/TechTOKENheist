@@ -38,20 +38,237 @@ const SPARK_PARTICLES = Array.from({ length: 15 }, (_, i) => ({
   animationDuration: `${3 + ((i * 0.51) % 4)}s, 2s`
 }));
 
-/* ─── Confetti Particles for Victory ─── */
-const ConfettiParticles = () => (
-  <div className="victory-confetti">
-    {CONFETTI_PIECES.map((piece, i) => (
-      <div key={i} className="victory-confetti-piece" style={piece} />
-    ))}
-  </div>
-);
+/* ─── High-Performance Interactive Canvas Celebration Engine ─── */
+const ChampionshipCelebrationCanvas = ({ active, winnerName }) => {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    if (!active) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let animationFrameId;
+    let particles = [];
+    let blastWaves = [];
+
+    const handleResize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    window.addEventListener('resize', handleResize);
+    handleResize();
+
+    const COLORS = [
+      '#fdd835', // Premium Gold
+      '#ff003c', // Cyberpunk Crimson
+      '#00d2ff', // Electric Cyan
+      '#e040fb', // Neon Pink/Purple
+      '#00e676', // Toxic Green
+      '#ffffff', // Pristine White
+    ];
+
+    const createParticle = (x, y, angle, speed, type = 'confetti') => {
+      const size = Math.random() * 9 + 4;
+      return {
+        x,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        rotation: Math.random() * Math.PI * 2,
+        rotationSpeed: (Math.random() - 0.5) * 0.25,
+        color: COLORS[Math.floor(Math.random() * COLORS.length)],
+        size,
+        type, // 'confetti' | 'star' | 'streamer'
+        opacity: 1,
+        decay: Math.random() * 0.012 + 0.008,
+        gravity: 0.15,
+        wind: (Math.random() - 0.5) * 0.06,
+        streamerPoints: type === 'streamer' ? Array.from({ length: 6 }, () => ({ x, y })) : [],
+      };
+    };
+
+    const fireCannon = (side) => {
+      const x = side === 'left' ? 60 : canvas.width - 60;
+      const y = canvas.height - 30;
+      const angleMin = side === 'left' ? -Math.PI / 2.8 : -Math.PI * 2.2 / 3;
+      const angleMax = side === 'left' ? -Math.PI / 12 : -Math.PI * 11 / 12;
+
+      // Blast wave shock ring
+      blastWaves.push({
+        x,
+        y,
+        radius: 0,
+        maxRadius: 160 + Math.random() * 80,
+        color: side === 'left' ? 'rgba(255, 0, 60, 0.45)' : 'rgba(0, 210, 255, 0.45)',
+        speed: 9,
+      });
+
+      // High velocity confetti flakes
+      for (let i = 0; i < 90; i++) {
+        const angle = angleMin + Math.random() * (angleMax - angleMin);
+        const speed = Math.random() * 18 + 9;
+        particles.push(createParticle(x, y, angle, speed, 'confetti'));
+      }
+
+      // Shimmering stars
+      for (let i = 0; i < 40; i++) {
+        const angle = angleMin + Math.random() * (angleMax - angleMin);
+        const speed = Math.random() * 14 + 6;
+        particles.push(createParticle(x, y, angle, speed, 'star'));
+      }
+
+      // Metallic foil ribbons/streamers
+      for (let i = 0; i < 10; i++) {
+        const angle = angleMin + Math.random() * (angleMax - angleMin);
+        const speed = Math.random() * 22 + 13;
+        particles.push(createParticle(x, y, angle, speed, 'streamer'));
+      }
+    };
+
+    // Intense sequence of popper launches
+    const timeouts = [
+      setTimeout(() => { fireCannon('left'); fireCannon('right'); }, 200),
+      setTimeout(() => { fireCannon('left'); fireCannon('right'); }, 1000),
+      setTimeout(() => { fireCannon('left'); }, 1800),
+      setTimeout(() => { fireCannon('right'); }, 2300),
+      setTimeout(() => { fireCannon('left'); fireCannon('right'); }, 3200),
+    ];
+
+    // Constant chaotic ambient falling pieces
+    const interval = setInterval(() => {
+      if (Math.random() > 0.5) {
+        fireCannon(Math.random() > 0.5 ? 'left' : 'right');
+      }
+    }, 2800);
+
+    // Interactive clicking lets players fire poppers manually!
+    const handleClick = (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      blastWaves.push({
+        x,
+        y,
+        radius: 0,
+        maxRadius: 100,
+        color: 'rgba(253, 216, 53, 0.5)',
+        speed: 8,
+      });
+
+      for (let i = 0; i < 50; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 10 + 4;
+        particles.push(createParticle(x, y, angle, speed, Math.random() > 0.25 ? 'confetti' : 'star'));
+      }
+    };
+
+    canvas.addEventListener('click', handleClick);
+
+    const updateAndDraw = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 1. Draw shockwaves
+      blastWaves = blastWaves.filter(wave => {
+        wave.radius += wave.speed;
+        const pct = wave.radius / wave.maxRadius;
+        const opacity = 1 - pct;
+        if (pct >= 1) return false;
+
+        ctx.strokeStyle = wave.color.replace('0.45', String(opacity * 0.45)).replace('0.5', String(opacity * 0.5));
+        ctx.lineWidth = 6 * (1 - pct);
+        ctx.beginPath();
+        ctx.arc(wave.x, wave.y, wave.radius, 0, Math.PI * 2);
+        ctx.stroke();
+        return true;
+      });
+
+      // 2. Draw active particles
+      particles = particles.filter(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += p.gravity;
+        p.vx += p.wind;
+        p.vx *= 0.985; // Air drag
+        p.vy *= 0.985;
+        p.rotation += p.rotationSpeed;
+        p.opacity -= p.decay;
+
+        if (p.opacity <= 0 || p.y > canvas.height + 30 || p.x < -30 || p.x > canvas.width + 30) {
+          return false;
+        }
+
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rotation);
+        ctx.globalAlpha = p.opacity;
+        ctx.fillStyle = p.color;
+
+        if (p.type === 'confetti') {
+          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 1.6);
+        } else if (p.type === 'star') {
+          // Draw four pointed diamond star
+          ctx.beginPath();
+          ctx.moveTo(0, -p.size);
+          ctx.lineTo(p.size * 0.4, -p.size * 0.4);
+          ctx.lineTo(p.size, 0);
+          ctx.lineTo(p.size * 0.4, p.size * 0.4);
+          ctx.lineTo(0, p.size);
+          ctx.lineTo(-p.size * 0.4, p.size * 0.4);
+          ctx.lineTo(-p.size, 0);
+          ctx.lineTo(-p.size * 0.4, -p.size * 0.4);
+          ctx.closePath();
+          ctx.fill();
+        } else if (p.type === 'streamer') {
+          ctx.restore();
+          p.streamerPoints.push({ x: p.x, y: p.y });
+          if (p.streamerPoints.length > 18) p.streamerPoints.shift();
+
+          ctx.save();
+          ctx.globalAlpha = p.opacity;
+          ctx.strokeStyle = p.color;
+          ctx.lineWidth = 3.5;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          ctx.beginPath();
+          ctx.moveTo(p.streamerPoints[0].x, p.streamerPoints[0].y);
+          for (let pt of p.streamerPoints) {
+            ctx.lineTo(pt.x, pt.y);
+          }
+          ctx.stroke();
+        }
+
+        ctx.restore();
+        return true;
+      });
+
+      animationFrameId = requestAnimationFrame(updateAndDraw);
+    };
+
+    updateAndDraw();
+
+    return () => {
+      timeouts.forEach(t => clearTimeout(t));
+      clearInterval(interval);
+      cancelAnimationFrame(animationFrameId);
+      window.removeEventListener('resize', handleResize);
+      canvas.removeEventListener('click', handleClick);
+    };
+  }, [active]);
+
+  return <canvas ref={canvasRef} className="celebration-particles-canvas" />;
+};
 
 /* ─── Victory Screen ─── */
 const VictoryScreen = ({ winnerName, scoreA, scoreB, teamAName, teamBName, audioRef, songTitle }) => {
   const [show, setShow] = useState(false);
   const [isSongPlaying, setIsSongPlaying] = useState(true);
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Intense Screen Shake, Glitches and Strobe states
+  const [bassShake, setBassShake] = useState(false);
+  const [strobeColor, setStrobeColor] = useState('transparent');
+  const [heavyGlitch, setHeavyGlitch] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setShow(true), 100);
@@ -63,6 +280,37 @@ const VictoryScreen = ({ winnerName, scoreA, scoreB, teamAName, teamBName, audio
       setIsSongPlaying(!audioRef.current.paused);
     }
   }, [audioRef]);
+
+  // Synchronized intense celebration rhythm (Flashes, Glitches, Shakes)
+  useEffect(() => {
+    if (!show) return;
+
+    const strobeColors = ['rgba(255, 0, 60, 0.15)', 'rgba(0, 210, 255, 0.15)', 'rgba(253, 216, 53, 0.15)', 'transparent'];
+    
+    // Fast Strobe flash synced to championship energy
+    const strobeInterval = setInterval(() => {
+      const nextColor = strobeColors[Math.floor(Math.random() * strobeColors.length)];
+      setStrobeColor(nextColor);
+    }, 450);
+
+    // Screen-shattering bass shake loop
+    const shakeInterval = setInterval(() => {
+      setBassShake(true);
+      setTimeout(() => setBassShake(false), 500);
+    }, 3800);
+
+    // Chromatic heavy glitch overlay trigger
+    const glitchInterval = setInterval(() => {
+      setHeavyGlitch(true);
+      setTimeout(() => setHeavyGlitch(false), 350);
+    }, 5500);
+
+    return () => {
+      clearInterval(strobeInterval);
+      clearInterval(shakeInterval);
+      clearInterval(glitchInterval);
+    };
+  }, [show]);
 
   const togglePlay = (e) => {
     if (e) e.stopPropagation();
@@ -91,29 +339,76 @@ const VictoryScreen = ({ winnerName, scoreA, scoreB, teamAName, teamBName, audio
   };
 
   return (
-    <div className="finale-victory-overlay" style={{ opacity: show ? 1 : 0, transition: 'opacity 1s ease-in' }}>
+    <div 
+      className={`finale-victory-overlay ${bassShake ? 'victory-bass-shake' : ''} ${heavyGlitch ? 'victory-heavy-glitch' : ''}`} 
+      style={{ opacity: show ? 1 : 0, transition: 'opacity 0.8s ease-in' }}
+    >
+      {/* Dynamic Strobe Flasher */}
+      <div className="victory-strobe-overlay" style={{ backgroundColor: strobeColor }} />
+
+      {/* Cyber ambient filters */}
       <div className="victory-bg-burst" />
       <div className="victory-flare" />
       <div className="victory-rings" />
-      <ConfettiParticles />
       <div className="finale-scanlines" />
+      
+      {/* Holographic Glowing side sweep lasers */}
+      <div className="victory-laser-sweeps">
+        <div className="laser-beam laser-red" />
+        <div className="laser-beam laser-blue" />
+        <div className="laser-beam laser-gold" />
+      </div>
 
-      <div className="victory-crown-emblem">
-        <Trophy size={96} className="victory-trophy-icon" />
+      {/* Scrolling Holographic Background Rows */}
+      <div className="victory-glitch-ticker-bg">
+        <div className="ticker-bg-row row-left">CHAMPIONSHIP SECURED // DISTRICT V CROWNED // SYSTEM CONQUERED // HELSINKI //</div>
+        <div className="ticker-bg-row row-right">CHAMPIONSHIP SECURED // DISTRICT V CROWNED // SYSTEM CONQUERED // RIO //</div>
       </div>
-      <div className="victory-title">CHAMPION CROWNED</div>
-      <div className="victory-winner-name">{winnerName}</div>
-      <div className="victory-score">
-        <span className="victory-score-a">{String(scoreA).padStart(2, '0')}</span>
-        <span className="victory-score-sep">—</span>
-        <span className="victory-score-b">{String(scoreB).padStart(2, '0')}</span>
+
+      {/* Interactive physics-based canvas particles (Manual click triggers poppers!) */}
+      <ChampionshipCelebrationCanvas active={show} winnerName={winnerName} />
+
+      {/* Real animated holographic party popper cannons at bottom corners */}
+      <div className="party-popper-cannon cannon-left">
+        <div className="cannon-barrel" />
+        <div className="cannon-base" />
+        <div className="cannon-muzzle-flash" />
       </div>
-      <div className="victory-team-rosters">
-        <span className="roster-red">{teamAName}</span>
-        <span className="roster-vs">VS</span>
-        <span className="roster-blue">{teamBName}</span>
+      <div className="party-popper-cannon cannon-right">
+        <div className="cannon-barrel" />
+        <div className="cannon-base" />
+        <div className="cannon-muzzle-flash" />
       </div>
-      <div className="victory-subtitle">THE SYSTEM HAS ELECTED ITS SUPREME CONQUEROR</div>
+
+      {/* CHAMPIONSHIP HUD INTERFACE */}
+      <div className="victory-content-card">
+        <div className="victory-card-glow-back" />
+        
+        <div className="victory-crown-emblem">
+          <Trophy size={110} className="victory-trophy-icon animate-bounce" />
+        </div>
+        
+        <div className="victory-title-wrapper">
+          <div className="victory-title-glitch" data-text="CHAMPIONSHIP CROWNED">CHAMPIONSHIP CROWNED</div>
+        </div>
+        
+        <div className="victory-winner-name-glow">{winnerName}</div>
+        
+        <div className="victory-score">
+          <span className="victory-score-a">{String(scoreA).padStart(2, '0')}</span>
+          <span className="victory-score-sep">—</span>
+          <span className="victory-score-b">{String(scoreB).padStart(2, '0')}</span>
+        </div>
+        
+        <div className="victory-team-rosters">
+          <span className="roster-red glow-crimson">{teamAName}</span>
+          <span className="roster-vs">VS</span>
+          <span className="roster-blue glow-cyan">{teamBName}</span>
+        </div>
+        
+        <div className="victory-subtitle">THE SYSTEM HAS ELECTED ITS SUPREME CONQUEROR</div>
+        <div className="victory-click-hint heist-mono">TAP SCREEN TO BLAST EXTRA CONFETTI POPPERS</div>
+      </div>
 
       {/* Mini Collapsible Spinning Vinyl Player */}
       <div className={`victory-mini-player-widget ${isCollapsed ? 'collapsed' : ''}`}>
