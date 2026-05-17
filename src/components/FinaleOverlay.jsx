@@ -230,6 +230,20 @@ const FinaleRoundTimer = ({ startTime, className = '' }) => {
 /* ─── Main Finale Overlay ─── */
 const FinaleOverlay = () => {
   const { gameState, user, myTeam } = useGameState();
+  const finaleState = gameState?.finaleState;
+  const {
+    teamAName = 'HELSINKI',
+    teamBName = 'RIO',
+    finaleResults,
+    currentRound = 0,
+    currentDomain,
+    finaleWinner,
+    winsA = 0,
+    winsB = 0,
+    roundStartedAt,
+    pendingDomain
+  } = finaleState || {};
+
   const [shaking, setShaking] = useState(false);
   const [currentCaptionIdx, setCurrentCaptionIdx] = useState(0);
   const prevRoundRef = useRef(-1);
@@ -286,20 +300,6 @@ const FinaleOverlay = () => {
         .catch(e => console.log('Audio dynamic source play blocked:', e));
     }
   }, [songSrc]);
-
-  const finaleState = gameState.finaleState;
-  const {
-    teamAName = 'HELSINKI',
-    teamBName = 'RIO',
-    finaleResults,
-    currentRound = 0,
-    currentDomain,
-    finaleWinner,
-    winsA = 0,
-    winsB = 0,
-    roundStartedAt,
-    pendingDomain
-  } = finaleState || {};
 
   const resolvedWinsA = winsA || 0;
   const resolvedWinsB = winsB || 0;
