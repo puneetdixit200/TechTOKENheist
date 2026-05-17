@@ -113,7 +113,7 @@ export const playBellaCiao175 = () => {
       throw new Error("Could not create AudioContext");
     }
 
-    const audioUrl = new URL('../assets/Bella Ciao.mp3', import.meta.url).href;
+    const audioUrl = new URL('../../assets/Bella Ciao.mp3', import.meta.url).href;
     const audio = new Audio(audioUrl);
     audio.crossOrigin = "anonymous";
 
@@ -136,7 +136,7 @@ export const playBellaCiao175 = () => {
   } catch (err) {
     console.error("Web Audio Amplification failed for Bella Ciao:", err);
     try {
-      const audioUrl = new URL('../assets/Bella Ciao.mp3', import.meta.url).href;
+      const audioUrl = new URL('../../assets/Bella Ciao.mp3', import.meta.url).href;
       const audio = new Audio(audioUrl);
       audio.volume = 1.0;
       audio.play().catch(e => console.error("Direct Bella Ciao play failed:", e));
@@ -145,4 +145,3 @@ export const playBellaCiao175 = () => {
     }
   }
 };
-

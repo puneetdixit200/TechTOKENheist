@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useRef } from 'react';
+import { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import { GameStateProvider, useGameState } from './hooks/useGameState';
 import { hasSupabaseConfig } from './lib/supabase';
@@ -9,7 +9,6 @@ import FinaleOverlay from './components/FinaleOverlay';
 import WagerModeOverlay from './components/WagerModeOverlay';
 
 import { buildReadyQueuePairs } from './utils/matchmaking';
-import { playBellaCiao175 } from './utils/audio';
 import gdgLogo from '../assets/gdg.png';
 
 import './PlayerLayout.css';
@@ -222,7 +221,7 @@ const PlayerLayout = ({ children }) => {
 
 
 const AppContent = () => {
-  const { user, countdown, hasHydrated, matchHistory, gameState } = useGameState();
+  const { user, countdown, hasHydrated } = useGameState();
   // Audio for victory is managed directly inside the Finale showdown screen and doesn't fire in Wager mode.
 
   if (!hasHydrated) return null;

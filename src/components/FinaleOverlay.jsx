@@ -4,6 +4,10 @@ import { Trophy, Activity, Radio, ShieldAlert } from 'lucide-react';
 import './FinaleOverlay.css';
 
 const TOTAL_ROUNDS = 5;
+const FINALE_AUDIO_SRC = new URL('../../assets/finale.mp3', import.meta.url).href;
+const BELLA_CIAO_AUDIO_SRC = new URL('../../assets/Bella Ciao.mp3', import.meta.url).href;
+const FINALE_AUDIO_TITLE = "FINALE — THE SYSTEM'S LAST HYMN";
+const BELLA_CIAO_AUDIO_TITLE = "BELLA CIAO — CHAMPIONSHIP ANTHEM";
 
 // Bottom captions to cycle automatically
 const DYNAMIC_CAPTIONS = [
@@ -248,49 +252,47 @@ const FinaleOverlay = () => {
   const [currentCaptionIdx, setCurrentCaptionIdx] = useState(0);
   const prevRoundRef = useRef(-1);
   const audioRef = useRef(null);
-  const [songSrc, setSongSrc] = useState(new URL('../../assets/finale.mp3', import.meta.url).href);
-  const [songTitle, setSongTitle] = useState("FINALE — THE SYSTEM'S LAST HYMN");
-  const isAmplifiedRef = useRef(false);
+  const audioGraphRef = useRef(null);
+  const isFinaleActive = Boolean(finaleState?.isFinaleActive);
+  const songSrc = finaleWinner ? BELLA_CIAO_AUDIO_SRC : FINALE_AUDIO_SRC;
+  const songTitle = finaleWinner ? BELLA_CIAO_AUDIO_TITLE : FINALE_AUDIO_TITLE;
 
-  // Dynamic victory music switch effect
+  // Dynamic victory music amplification.
   useEffect(() => {
-    if (!finaleState || !finaleState.isFinaleActive) return;
+    if (!isFinaleActive || !audioRef.current) return;
 
-    if (finaleWinner) {
-      // 1. Switch to Bella Ciao
-      const bellaCiaoUrl = new URL('../../assets/Bella Ciao.mp3', import.meta.url).href;
-      setSongSrc(bellaCiaoUrl);
-      setSongTitle("BELLA CIAO — CHAMPIONSHIP ANTHEM");
-
-      // 2. Set volume amplification to 175%
-      if (audioRef.current && !isAmplifiedRef.current) {
-        isAmplifiedRef.current = true;
-        try {
-          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-          if (AudioContextClass) {
-            const audioCtx = new AudioContextClass();
-            const sourceNode = audioCtx.createMediaElementSource(audioRef.current);
-            const gainNode = audioCtx.createGain();
-            gainNode.gain.value = 1.75;
-            sourceNode.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-            
-            if (audioCtx.state === 'suspended') {
-              audioCtx.resume();
-            }
-          }
-        } catch (err) {
-          console.log("Web Audio Context already initialized or blocked:", err);
-          audioRef.current.volume = 1.0;
-        }
+    if (!finaleWinner) {
+      if (audioGraphRef.current) {
+        audioGraphRef.current.gainNode.gain.value = 1;
       }
-    } else {
-      // Reset source when active but not won
-      const finaleUrl = new URL('../../assets/finale.mp3', import.meta.url).href;
-      setSongSrc(finaleUrl);
-      setSongTitle("FINALE — THE SYSTEM'S LAST HYMN");
+      return;
     }
-  }, [finaleWinner, finaleState?.isFinaleActive]);
+
+    try {
+      if (!audioGraphRef.current) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) {
+          audioRef.current.volume = 1.0;
+          return;
+        }
+
+        const audioCtx = new AudioContextClass();
+        const sourceNode = audioCtx.createMediaElementSource(audioRef.current);
+        const gainNode = audioCtx.createGain();
+        sourceNode.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        audioGraphRef.current = { audioCtx, gainNode };
+      }
+
+      audioGraphRef.current.gainNode.gain.value = 1.75;
+      if (audioGraphRef.current.audioCtx.state === 'suspended') {
+        audioGraphRef.current.audioCtx.resume();
+      }
+    } catch (err) {
+      console.log("Web Audio Context already initialized or blocked:", err);
+      audioRef.current.volume = 1.0;
+    }
+  }, [finaleWinner, isFinaleActive]);
 
   // Load and replay audio when dynamic source changes
   useEffect(() => {
