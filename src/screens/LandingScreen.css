@@ -152,7 +152,10 @@ html.landing-scroll-mode {
   background-position: center;
   background-repeat: no-repeat;
   filter: brightness(0.5);
-  transform: none;
+  transform: scale(1);
+  transform-origin: center center;
+  animation: vaultBackgroundSlowZoom 48s ease-in-out infinite alternate;
+  will-change: transform;
 }
 
 .vault-bg-inner--red {
@@ -1040,6 +1043,16 @@ html.landing-scroll-mode {
   }
 }
 
+@keyframes vaultBackgroundSlowZoom {
+  0% {
+    transform: scale(1);
+  }
+
+  100% {
+    transform: scale(1.06);
+  }
+}
+
 @keyframes preludeLift {
   to {
     opacity: 1;
@@ -1732,6 +1745,11 @@ html.landing-scroll-mode {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .vault-bg-inner {
+    animation: none;
+    transform: scale(1);
+  }
+
   .token-burst__coin,
   .token-rain__coin,
   .token-burst__coin img,
