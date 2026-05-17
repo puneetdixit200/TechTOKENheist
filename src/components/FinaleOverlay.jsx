@@ -2,10 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useGameState } from '../hooks/useGameState';
 import { Trophy, Activity, Radio, ShieldAlert } from 'lucide-react';
 import './FinaleOverlay.css';
+import tokenImg from '../../assets/token.png';
 
 const TOTAL_ROUNDS = 5;
 const FINALE_AUDIO_SRC = new URL('../../assets/finale.mp3', import.meta.url).href;
 const BELLA_CIAO_AUDIO_SRC = new URL('../../assets/Bella Ciao.mp3', import.meta.url).href;
+const DANCE_GIF_SRC = new URL('../../assets/dance.gif', import.meta.url).href;
 const FINALE_AUDIO_TITLE = "FINALE — THE SYSTEM'S LAST HYMN";
 const BELLA_CIAO_AUDIO_TITLE = "BELLA CIAO — CHAMPIONSHIP ANTHEM";
 
@@ -51,6 +53,14 @@ const ChampionshipCelebrationCanvas = ({ active, winnerName }) => {
     let particles = [];
     let blastWaves = [];
 
+    // Load the gold token coin image
+    const coinImg = new Image();
+    coinImg.src = tokenImg;
+    let imgLoaded = false;
+    coinImg.onload = () => {
+      imgLoaded = true;
+    };
+
     const handleResize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
@@ -67,21 +77,27 @@ const ChampionshipCelebrationCanvas = ({ active, winnerName }) => {
       '#ffffff', // Pristine White
     ];
 
-    const createParticle = (x, y, angle, speed, type = 'confetti') => {
-      const size = Math.random() * 9 + 4;
+    const createParticle = (x, y, angle, speed, type = 'coin') => {
+      // Coins are larger to reveal details; stars and streamers add ambient flair
+      const size = type === 'coin' 
+        ? Math.random() * 24 + 14 
+        : type === 'streamer' 
+          ? Math.random() * 6 + 4 
+          : Math.random() * 8 + 4;
+
       return {
         x,
         y,
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
         rotation: Math.random() * Math.PI * 2,
-        rotationSpeed: (Math.random() - 0.5) * 0.25,
+        rotationSpeed: (Math.random() - 0.5) * (type === 'coin' ? 0.12 : 0.25),
         color: COLORS[Math.floor(Math.random() * COLORS.length)],
         size,
-        type, // 'confetti' | 'star' | 'streamer'
+        type, // 'coin' | 'star' | 'streamer'
         opacity: 1,
-        decay: Math.random() * 0.012 + 0.008,
-        gravity: 0.15,
+        decay: type === 'coin' ? Math.random() * 0.007 + 0.004 : Math.random() * 0.012 + 0.008,
+        gravity: type === 'coin' ? 0.22 : 0.15,
         wind: (Math.random() - 0.5) * 0.06,
         streamerPoints: type === 'streamer' ? Array.from({ length: 6 }, () => ({ x, y })) : [],
       };
@@ -103,11 +119,11 @@ const ChampionshipCelebrationCanvas = ({ active, winnerName }) => {
         speed: 9,
       });
 
-      // High velocity confetti flakes
-      for (let i = 0; i < 90; i++) {
+      // High velocity coin particles
+      for (let i = 0; i < 75; i++) {
         const angle = angleMin + Math.random() * (angleMax - angleMin);
         const speed = Math.random() * 18 + 9;
-        particles.push(createParticle(x, y, angle, speed, 'confetti'));
+        particles.push(createParticle(x, y, angle, speed, 'coin'));
       }
 
       // Shimmering stars
@@ -141,7 +157,7 @@ const ChampionshipCelebrationCanvas = ({ active, winnerName }) => {
       }
     }, 2800);
 
-    // Interactive clicking lets players fire poppers manually!
+    // Interactive window clicking spawns massive bursts of flying coins at the cursor!
     const handleClick = (e) => {
       const rect = canvas.getBoundingClientRect();
       const x = e.clientX - rect.left;
@@ -156,14 +172,22 @@ const ChampionshipCelebrationCanvas = ({ active, winnerName }) => {
         speed: 8,
       });
 
-      for (let i = 0; i < 50; i++) {
+      // Spawn flying gold coins
+      for (let i = 0; i < 35; i++) {
         const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * 10 + 4;
-        particles.push(createParticle(x, y, angle, speed, Math.random() > 0.25 ? 'confetti' : 'star'));
+        const speed = Math.random() * 9 + 3;
+        particles.push(createParticle(x, y, angle, speed, 'coin'));
+      }
+
+      // Spawn shimmering gold stars
+      for (let i = 0; i < 15; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 6 + 2;
+        particles.push(createParticle(x, y, angle, speed, 'star'));
       }
     };
 
-    canvas.addEventListener('click', handleClick);
+    window.addEventListener('click', handleClick);
 
     const updateAndDraw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -202,11 +226,19 @@ const ChampionshipCelebrationCanvas = ({ active, winnerName }) => {
         ctx.translate(p.x, p.y);
         ctx.rotate(p.rotation);
         ctx.globalAlpha = p.opacity;
-        ctx.fillStyle = p.color;
 
-        if (p.type === 'confetti') {
-          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 1.6);
+        if (p.type === 'coin') {
+          if (imgLoaded) {
+            ctx.drawImage(coinImg, -p.size / 2, -p.size / 2, p.size, p.size);
+          } else {
+            // Fallback gold shiny circle
+            ctx.fillStyle = '#fdd835';
+            ctx.beginPath();
+            ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+            ctx.fill();
+          }
         } else if (p.type === 'star') {
+          ctx.fillStyle = p.color;
           // Draw four pointed diamond star
           ctx.beginPath();
           ctx.moveTo(0, -p.size);
@@ -252,7 +284,7 @@ const ChampionshipCelebrationCanvas = ({ active, winnerName }) => {
       clearInterval(interval);
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', handleResize);
-      canvas.removeEventListener('click', handleClick);
+      window.removeEventListener('click', handleClick);
     };
   }, [active]);
 
@@ -385,7 +417,7 @@ const VictoryScreen = ({ winnerName, scoreA, scoreB, teamAName, teamBName, audio
         <div className="victory-card-glow-back" />
         
         <div className="victory-crown-emblem">
-          <Trophy size={110} className="victory-trophy-icon animate-bounce" />
+          <img src={DANCE_GIF_SRC} className="victory-dance-gif" alt="Winner Celebration" />
         </div>
         
         <div className="victory-title-wrapper">
