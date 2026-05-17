@@ -51,6 +51,20 @@ test('edge automatching passes current phase into largest-difference wager scori
   assert.match(sharedMatchmaking, /isPhase2[\s\S]{0,160}\? scorePhase2\(eligible\[i\], eligible\[j\]\)/)
 })
 
+test('wager automatching keeps teams queued until admin confirms a spun domain', () => {
+  const edgeFunction = readProjectFile('supabase/functions/game-actions/index.ts')
+  const autoMatchBlock = getCaseBlock(edgeFunction, 'const autoMatchPairs = async () => {', 'serve(async (req) => {')
+  const createMatchBlock = getCaseBlock(edgeFunction, "case 'createMatch':", "case 'declareWinner':")
+
+  assert.doesNotMatch(autoMatchBlock, /from\('active_matches'\)\.insert/)
+  assert.doesNotMatch(autoMatchBlock, /from\('teams'\)\.update\(\{\s*status:\s*'fighting'\s*\}\)/)
+  assert.doesNotMatch(autoMatchBlock, /from\('matchmaking_queue'\)\.delete\(\)\.in\('team_id'/)
+  assert.match(autoMatchBlock, /from\('matchmaking_queue'\)\.update\(\{\s*matched_with:\s*p\.teamBId\s*\}\)\.eq\('team_id', p\.teamAId\)/)
+  assert.match(autoMatchBlock, /from\('matchmaking_queue'\)\.update\(\{\s*matched_with:\s*p\.teamAId\s*\}\)\.eq\('team_id', p\.teamBId\)/)
+  assert.match(createMatchBlock, /const system = await getGameSystem\(\)/)
+  assert.match(createMatchBlock, /is_wager:\s*system\?\.phase === 'phase2'/)
+})
+
 test('active matches use current wager phase when declaring a winner', () => {
   const edgeFunction = readProjectFile('supabase/functions/game-actions/index.ts')
   const declareWinnerBlock = getCaseBlock(edgeFunction, "case 'declareWinner':", "case 'spinDomain':")

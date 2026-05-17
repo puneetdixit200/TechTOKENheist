@@ -301,58 +301,11 @@ const autoMatchPairs = async () => {
 
     if (!pairs.length) return [];
 
-    const isPhase2 = system?.phase === 'phase2';
-
-    if (isPhase2) {
-        // FULLY AUTOMATED FOR PHASE 2: Create active matches immediately
-        const allDomains = system?.domains || DEFAULT_DOMAINS;
-        const activeDomains = (matchRows || []).map(m => m.domain).filter(d => d && d !== 'TBD');
-
-        const creationPromises = pairs.map(async (p) => {
-            const teamA = teams.find((t) => t.id === p.teamAId);
-            const teamB = teams.find((t) => t.id === p.teamBId);
-
-            // Get valid domains for this pair
-            const validDomains = getValidDomains({
-                teamA,
-                teamB,
-                matchConstraints: constraints,
-                allDomains,
-            });
-
-            if (validDomains.length === 0) return null;
-
-            // Pick a domain with variety preference
-            const uniqueValid = validDomains.filter(d => !activeDomains.includes(d));
-            const choices = uniqueValid.length > 0 ? uniqueValid : validDomains;
-            const domain = choices[Math.floor(Math.random() * choices.length)];
-
-            // 1. Create the active match
-            await supabaseAdmin.from('active_matches').insert([{
-                team_a: p.teamAId,
-                team_b: p.teamBId,
-                domain,
-                start_time: Date.now(),
-                teamA: toPublicTeamSnapshot(teamA),
-                teamB: toPublicTeamSnapshot(teamB)
-            }]);
-
-            // 2. Set team statuses to 'fighting'
-            await supabaseAdmin.from('teams').update({ status: 'fighting' }).in('id', [p.teamAId, p.teamBId]);
-
-            // 3. Remove from matchmaking queue
-            await supabaseAdmin.from('matchmaking_queue').delete().in('team_id', [p.teamAId, p.teamBId]);
-        });
-
-        await Promise.all(creationPromises);
-    } else {
-        // PHASE 1: Just update the queue (Semi-automated, requires admin execution)
-        const updatePromises = pairs.flatMap((p) => [
-            supabaseAdmin.from('matchmaking_queue').update({ matched_with: p.teamBId }).eq('team_id', p.teamAId),
-            supabaseAdmin.from('matchmaking_queue').update({ matched_with: p.teamAId }).eq('team_id', p.teamBId),
-        ]);
-        await Promise.all(updatePromises);
-    }
+    const updatePromises = pairs.flatMap((p) => [
+        supabaseAdmin.from('matchmaking_queue').update({ matched_with: p.teamBId }).eq('team_id', p.teamAId),
+        supabaseAdmin.from('matchmaking_queue').update({ matched_with: p.teamAId }).eq('team_id', p.teamBId),
+    ]);
+    await Promise.all(updatePromises);
 
     return pairs;
 };
@@ -796,6 +749,7 @@ serve(async (req) => {
 
                 if (existingA || existingB) return ok({ match: null });
 
+                const system = await getGameSystem();
                 const match = await querySingle(
                     supabaseAdmin
                         .from('active_matches')
@@ -804,6 +758,7 @@ serve(async (req) => {
                             team_b: teamBId,
                             domain,
                             start_time: Date.now(),
+                            is_wager: system?.phase === 'phase2',
                             teamA: toPublicTeamSnapshot(teamA),
                             teamB: toPublicTeamSnapshot(teamB),
                         }])
