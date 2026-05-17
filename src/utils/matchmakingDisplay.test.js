@@ -33,11 +33,14 @@ test('queue diagnostics receive active match context', () => {
   assert.match(arenaScreen, /buildQueueDiagnostics\(\{\s*gameState,\s*teams,\s*matchmakingQueue,\s*matchConstraints,\s*activeMatches\s*\}\)/)
 })
 
-test('admin force assignment button invokes automatching', () => {
+test('admin rematch button invokes queue-only rematching', () => {
   const adminScreen = readProjectFile('src/screens/AdminScreen.jsx')
 
-  assert.match(adminScreen, /autoMatchPairs/)
-  assert.match(adminScreen, /onClick=\{\(\) => safeAction\('autoMatchPairs', autoMatchPairs\)\}/)
+  assert.match(adminScreen, /rematchQueue/)
+  assert.match(adminScreen, /onClick=\{\(\) => safeAction\('rematchQueue', rematchQueue\)\}/)
+  assert.match(adminScreen, /REMATCH/)
+  assert.doesNotMatch(adminScreen, /FORCE ASSIGN/)
+  assert.doesNotMatch(adminScreen, /onClick=\{\(\) => safeAction\('autoMatchPairs', autoMatchPairs\)\}/)
   assert.doesNotMatch(adminScreen, /onClick=\{enrollAllEligible\}/)
 })
 

@@ -43,24 +43,24 @@ test('wager phase transition rematches queued teams without clearing active matc
 test('edge automatching passes current phase into largest-difference wager scoring', () => {
   const edgeFunction = readProjectFile('supabase/functions/game-actions/index.ts')
   const sharedMatchmaking = readProjectFile('supabase/functions/_shared/matchmaking.ts')
-  const autoMatchBlock = getCaseBlock(edgeFunction, 'const autoMatchPairs = async () => {', 'serve(async (req) => {')
+  const matchQueuedBlock = getCaseBlock(edgeFunction, 'const matchQueuedTeams = async', 'const autoMatchPairs = async')
 
-  assert.match(autoMatchBlock, /const system = await getGameSystem\(\)/)
-  assert.match(autoMatchBlock, /gameState:\s*\{\s*phase:\s*system\?\.phase \|\| 'phase1'\s*\}/)
+  assert.match(matchQueuedBlock, /const system = await getGameSystem\(\)/)
+  assert.match(matchQueuedBlock, /gameState:\s*\{\s*phase:\s*system\?\.phase \|\| 'phase1'\s*\}/)
   assert.match(sharedMatchmaking, /function scorePhase2\(teamA, teamB\)[\s\S]*return -Math\.abs\(\(teamA\.tokens \|\| 0\) - \(teamB\.tokens \|\| 0\)\)/)
   assert.match(sharedMatchmaking, /isPhase2[\s\S]{0,160}\? scorePhase2\(eligible\[i\], eligible\[j\]\)/)
 })
 
 test('wager automatching keeps teams queued until admin confirms a spun domain', () => {
   const edgeFunction = readProjectFile('supabase/functions/game-actions/index.ts')
-  const autoMatchBlock = getCaseBlock(edgeFunction, 'const autoMatchPairs = async () => {', 'serve(async (req) => {')
+  const matchQueuedBlock = getCaseBlock(edgeFunction, 'const matchQueuedTeams = async', 'const autoMatchPairs = async')
   const createMatchBlock = getCaseBlock(edgeFunction, "case 'createMatch':", "case 'declareWinner':")
 
-  assert.doesNotMatch(autoMatchBlock, /from\('active_matches'\)\.insert/)
-  assert.doesNotMatch(autoMatchBlock, /from\('teams'\)\.update\(\{\s*status:\s*'fighting'\s*\}\)/)
-  assert.doesNotMatch(autoMatchBlock, /from\('matchmaking_queue'\)\.delete\(\)\.in\('team_id'/)
-  assert.match(autoMatchBlock, /from\('matchmaking_queue'\)\.update\(\{\s*matched_with:\s*p\.teamBId\s*\}\)\.eq\('team_id', p\.teamAId\)/)
-  assert.match(autoMatchBlock, /from\('matchmaking_queue'\)\.update\(\{\s*matched_with:\s*p\.teamAId\s*\}\)\.eq\('team_id', p\.teamBId\)/)
+  assert.doesNotMatch(matchQueuedBlock, /from\('active_matches'\)\.insert/)
+  assert.doesNotMatch(matchQueuedBlock, /from\('teams'\)\.update\(\{\s*status:\s*'fighting'\s*\}\)/)
+  assert.doesNotMatch(matchQueuedBlock, /from\('matchmaking_queue'\)\.delete\(\)\.in\('team_id'/)
+  assert.match(matchQueuedBlock, /from\('matchmaking_queue'\)\.update\(\{\s*matched_with:\s*p\.teamBId\s*\}\)\.eq\('team_id', p\.teamAId\)/)
+  assert.match(matchQueuedBlock, /from\('matchmaking_queue'\)\.update\(\{\s*matched_with:\s*p\.teamAId\s*\}\)\.eq\('team_id', p\.teamBId\)/)
   assert.match(createMatchBlock, /const system = await getGameSystem\(\)/)
   assert.match(createMatchBlock, /is_wager:\s*system\?\.phase === 'phase2'/)
 })
@@ -91,7 +91,7 @@ test('winner declaration claims the active match before editing guarded team row
 test('enrollment repairs orphan fighting teams before building the queue', () => {
   const edgeFunction = readProjectFile('supabase/functions/game-actions/index.ts')
   const repairBlock = getCaseBlock(edgeFunction, 'const releaseOrphanedFightingTeams = async () => {', 'const enrollAllEligibleTeams = async () => {')
-  const enrollBlock = getCaseBlock(edgeFunction, 'const enrollAllEligibleTeams = async () => {', 'const autoMatchPairs = async () => {')
+  const enrollBlock = getCaseBlock(edgeFunction, 'const enrollAllEligibleTeams = async () => {', 'const matchQueuedTeams = async')
 
   assert.match(repairBlock, /from\('active_matches'\)\.select\('team_a, team_b'\)/)
   assert.match(repairBlock, /from\('matchmaking_queue'\)\.select\('team_id, team_name, team_tokens'\)/)
@@ -109,6 +109,21 @@ test('force enrollment action runs the matcher after repairing queue state', () 
   assert.match(enrollCaseBlock, /const pairs = await autoMatchPairs\(\)/)
   assert.match(enrollCaseBlock, /return ok\(\{\s*pairs\s*\}\)/)
   assert.doesNotMatch(enrollCaseBlock, /await enrollAllEligibleTeams\(\);\s*return ok\(\)/)
+})
+
+test('rematch queue action resets queue locks without enrolling extra teams', () => {
+  const edgeFunction = readProjectFile('supabase/functions/game-actions/index.ts')
+  const useGameState = readProjectFile('src/hooks/useGameState.jsx')
+  const matchQueuedBlock = getCaseBlock(edgeFunction, 'const matchQueuedTeams = async', 'const autoMatchPairs = async')
+  const rematchCaseBlock = getCaseBlock(edgeFunction, "case 'rematchQueue':", "case 'autoMatchPairs':")
+
+  assert.match(edgeFunction, /'rematchQueue'/)
+  assert.match(matchQueuedBlock, /if \(enrollEligibleTeams\) \{\s*await enrollAllEligibleTeams\(\);\s*\}/)
+  assert.match(matchQueuedBlock, /if \(resetExistingLocks\) \{[\s\S]*from\('matchmaking_queue'\)[\s\S]*update\(\{\s*matched_with:\s*null\s*\}\)[\s\S]*not\('matched_with', 'is', null\)/)
+  assert.match(edgeFunction, /const rematchQueuedTeams = async \(\) => matchQueuedTeams\(\{\s*enrollEligibleTeams:\s*false,\s*resetExistingLocks:\s*true\s*\}\)/)
+  assert.match(rematchCaseBlock, /const pairs = await rematchQueuedTeams\(\)/)
+  assert.match(rematchCaseBlock, /return ok\(\{\s*pairs\s*\}\)/)
+  assert.match(useGameState, /rematchQueue: async \(\) => get\(\)\._invoke\('rematchQueue'\)/)
 })
 
 test('admin winner buttons surface declare-winner failures', () => {

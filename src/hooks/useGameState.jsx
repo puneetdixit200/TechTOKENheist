@@ -260,6 +260,7 @@ const useGameStateStore = create(
       spinDomain: async (matchId, preferredDomain) => get()._invoke('spinDomain', { matchId, preferredDomain }),
       updateDomains: async (domains) => get()._invoke('updateDomains', { domains }),
       setTimeoutDuration: async (durationMs) => get()._invoke('setTimeoutDuration', { durationMs }),
+      rematchQueue: async () => get()._invoke('rematchQueue'),
       autoMatchPairs: async () => get()._invoke('autoMatchPairs'),
       endMatchAndStartFinale: async () => get()._invoke('endMatchAndStartFinale'),
       setFinaleDomain: async (domain) => get()._invoke('setFinaleDomain', { domain }),

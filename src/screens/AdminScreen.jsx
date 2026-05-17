@@ -51,7 +51,7 @@ const AdminScreen = () => {
     notifications, queuePairs, matchConstraints,
     startGame, stopGame, resetGame, togglePhase, createTeam, deleteTeam,
     updateTokens, createMatch, declareWinner, spinDomain, updateDomains, setTimeoutDuration,
-    autoMatchPairs,
+    rematchQueue,
     endMatchAndStartFinale, setFinaleDomain,
     declareFinaleRoundWinner, endFinale,
     _invoke
@@ -682,10 +682,10 @@ const AdminScreen = () => {
                   {gameState.isGameActive && (
                     <button
                       className="heist-mono text-xs border border-gray-600 px-2 py-1 hover:bg-gray-800 disabled:opacity-50 disabled:cursor-wait"
-                      onClick={() => safeAction('autoMatchPairs', autoMatchPairs)}
+                      onClick={() => safeAction('rematchQueue', rematchQueue)}
                       disabled={!!actionInProgress}
                     >
-                      {actionInProgress === 'autoMatchPairs' ? 'ASSIGNING...' : 'FORCE ASSIGN'}
+                      {actionInProgress === 'rematchQueue' ? 'REMATCHING...' : 'REMATCH'}
                     </button>
                   )}
                 </div>

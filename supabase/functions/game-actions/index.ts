@@ -255,13 +255,24 @@ const enrollAllEligibleTeams = async () => {
     }
 };
 
-const autoMatchPairs = async () => {
-    // 1. Automatically enroll any eligible teams that aren't in the queue yet
-    await enrollAllEligibleTeams();
+const matchQueuedTeams = async ({
+    enrollEligibleTeams = true,
+    resetExistingLocks = false,
+} = {}) => {
+    if (enrollEligibleTeams) {
+        await enrollAllEligibleTeams();
+    }
 
     const system = await getGameSystem();
     if (!system?.is_game_active || system?.is_paused) return [];
     if (system?.finale_state?.isFinaleActive) return [];
+
+    if (resetExistingLocks) {
+        await supabaseAdmin
+            .from('matchmaking_queue')
+            .update({ matched_with: null })
+            .not('matched_with', 'is', null);
+    }
 
     const [teamsRows, queueRows, matchRows, historyRows] = await Promise.all([
         queryList(supabaseAdmin.from('teams').select('*')),
@@ -310,6 +321,9 @@ const autoMatchPairs = async () => {
     return pairs;
 };
 
+const autoMatchPairs = async () => matchQueuedTeams({ enrollEligibleTeams: true });
+const rematchQueuedTeams = async () => matchQueuedTeams({ enrollEligibleTeams: false, resetExistingLocks: true });
+
 
 serve(async (req) => {
     if (req.method === 'OPTIONS') {
@@ -343,7 +357,7 @@ serve(async (req) => {
         }
     }
 
-    const adminActions = ['enrollAllEligible', 'startGame', 'stopGame', 'resetGame', 'togglePhase', 'createTeam', 'editTeam', 'deleteTeam', 'updateTokens', 'recoverFromTimeout', 'createMatch', 'declareWinner', 'spinDomain', 'updateDomains', 'setTimeoutDuration', 'autoMatchPairs', 'endMatchAndStartFinale', 'setFinaleDomain', 'declareFinaleRoundWinner', 'endFinale', 'enforceWagerEliminations'];
+    const adminActions = ['enrollAllEligible', 'startGame', 'stopGame', 'resetGame', 'togglePhase', 'createTeam', 'editTeam', 'deleteTeam', 'updateTokens', 'recoverFromTimeout', 'createMatch', 'declareWinner', 'spinDomain', 'updateDomains', 'setTimeoutDuration', 'rematchQueue', 'autoMatchPairs', 'endMatchAndStartFinale', 'setFinaleDomain', 'declareFinaleRoundWinner', 'endFinale', 'enforceWagerEliminations'];
     const playerActions = ['joinQueue', 'leaveQueue'];
 
     if (adminActions.includes(action) && userRole !== 'admin') {
@@ -1127,6 +1141,11 @@ serve(async (req) => {
                 await supabaseAdmin.from('system').update({ finale_state: null }).eq('key', 'game');
                 await supabaseAdmin.from('teams').update({ status: 'idle' }).in('status', ['spectating', 'finalist']);
                 return ok();
+            }
+
+            case 'rematchQueue': {
+                const pairs = await rematchQueuedTeams();
+                return ok({ pairs });
             }
 
             case 'autoMatchPairs': {
