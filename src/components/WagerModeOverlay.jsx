@@ -269,7 +269,7 @@ const WagerModeOverlay = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const audioRef = useRef(null);
-  const prevPhaseRef = useRef(gameState.phase);
+  const prevPhaseRef = useRef(null);
   const isSongPlayingRef = useRef(isSongPlaying);
 
   // Sync ref with state safely inside useEffect to adhere to render purity rules
@@ -308,6 +308,7 @@ const WagerModeOverlay = () => {
         prevPhaseRef.current = 'phase2';
         return () => clearTimeout(timerId);
       } else {
+        sessionStorage.setItem('wager-countdown-played', 'true');
         const timerId = setTimeout(() => {
           setCountdownCompleted(true);
         }, 0);
