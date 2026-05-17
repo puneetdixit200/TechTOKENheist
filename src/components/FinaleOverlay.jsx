@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useGameState } from '../hooks/useGameState';
-import { Trophy, Activity, Radio, ShieldAlert } from 'lucide-react';
+import { Activity, Radio, ShieldAlert } from 'lucide-react';
 import './FinaleOverlay.css';
 import tokenImg from '../../assets/token.png';
 
@@ -22,12 +22,6 @@ const DYNAMIC_CAPTIONS = [
 ];
 
 // Pre-calculate stable visual styles to preserve render purity and support React StrictMode / React 19
-const CONFETTI_PIECES = Array.from({ length: 30 }, (_, i) => ({
-  left: `${(i * 3.37) % 100}%`,
-  animationDelay: `${(i * 0.11) % 3}s`,
-  animationDuration: `${2 + ((i * 0.23) % 3)}s`
-}));
-
 const EMBER_PARTICLES = Array.from({ length: 15 }, (_, i) => ({
   left: `${(i * 6.73) % 100}%`,
   animationDelay: `${(i * 0.29) % 4}s, 0s`,
@@ -288,7 +282,13 @@ const ChampionshipCelebrationCanvas = ({ active, winnerName }) => {
     };
   }, [active]);
 
-  return <canvas ref={canvasRef} className="celebration-particles-canvas" />;
+  return (
+    <canvas
+      ref={canvasRef}
+      className="celebration-particles-canvas"
+      aria-label={`${winnerName || 'Winner'} championship celebration particle effects`}
+    />
+  );
 };
 
 /* ─── Victory Screen ─── */
