@@ -44,7 +44,7 @@ const ConfettiParticles = () => (
 );
 
 /* ─── Victory Screen ─── */
-const VictoryScreen = ({ winnerName, scoreA, scoreB, teamAName, teamBName, audioRef }) => {
+const VictoryScreen = ({ winnerName, scoreA, scoreB, teamAName, teamBName, audioRef, songTitle }) => {
   const [show, setShow] = useState(false);
   const [isSongPlaying, setIsSongPlaying] = useState(true);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -155,7 +155,7 @@ const VictoryScreen = ({ winnerName, scoreA, scoreB, teamAName, teamBName, audio
           <div className="victory-player-widget-details">
             <div className="victory-song-title-wrapper heist-mono">
               <div className="victory-song-title-ticker">
-                FINALE — THE SYSTEM'S LAST HYMN
+                {songTitle}
               </div>
             </div>
             
@@ -234,6 +234,58 @@ const FinaleOverlay = () => {
   const [currentCaptionIdx, setCurrentCaptionIdx] = useState(0);
   const prevRoundRef = useRef(-1);
   const audioRef = useRef(null);
+  const [songSrc, setSongSrc] = useState(new URL('../../assets/finale.mp3', import.meta.url).href);
+  const [songTitle, setSongTitle] = useState("FINALE — THE SYSTEM'S LAST HYMN");
+  const isAmplifiedRef = useRef(false);
+
+  // Dynamic victory music switch effect
+  useEffect(() => {
+    if (!finaleState || !finaleState.isFinaleActive) return;
+
+    if (finaleWinner) {
+      // 1. Switch to Bella Ciao
+      const bellaCiaoUrl = new URL('../../assets/Bella Ciao.mp3', import.meta.url).href;
+      setSongSrc(bellaCiaoUrl);
+      setSongTitle("BELLA CIAO — CHAMPIONSHIP ANTHEM");
+
+      // 2. Set volume amplification to 175%
+      if (audioRef.current && !isAmplifiedRef.current) {
+        isAmplifiedRef.current = true;
+        try {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (AudioContextClass) {
+            const audioCtx = new AudioContextClass();
+            const sourceNode = audioCtx.createMediaElementSource(audioRef.current);
+            const gainNode = audioCtx.createGain();
+            gainNode.gain.value = 1.75;
+            sourceNode.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            if (audioCtx.state === 'suspended') {
+              audioCtx.resume();
+            }
+          }
+        } catch (err) {
+          console.log("Web Audio Context already initialized or blocked:", err);
+          audioRef.current.volume = 1.0;
+        }
+      }
+    } else {
+      // Reset source when active but not won
+      const finaleUrl = new URL('../../assets/finale.mp3', import.meta.url).href;
+      setSongSrc(finaleUrl);
+      setSongTitle("FINALE — THE SYSTEM'S LAST HYMN");
+    }
+  }, [finaleWinner, finaleState?.isFinaleActive]);
+
+  // Load and replay audio when dynamic source changes
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.load();
+      audioRef.current.play()
+        .catch(e => console.log('Audio dynamic source play blocked:', e));
+    }
+  }, [songSrc]);
 
   const finaleState = gameState.finaleState;
   const {
@@ -365,7 +417,7 @@ const FinaleOverlay = () => {
     <>
       <audio
         ref={audioRef}
-        src={new URL('../../assets/finale.mp3', import.meta.url).href}
+        src={songSrc}
         loop
         autoPlay
       />
@@ -377,6 +429,7 @@ const FinaleOverlay = () => {
           teamAName={teamAName}
           teamBName={teamBName}
           audioRef={audioRef}
+          songTitle={songTitle}
         />
       ) : (
         <div className={`finale-overlay ${shaking ? 'finale-shake' : ''}`}>

@@ -223,48 +223,7 @@ const PlayerLayout = ({ children }) => {
 
 const AppContent = () => {
   const { user, countdown, hasHydrated, matchHistory, gameState } = useGameState();
-  const prevHistoryCount = useRef(null);
-  const prevWinsA = useRef(null);
-  const prevWinsB = useRef(null);
-  const prevWinner = useRef(null);
-
-  useEffect(() => {
-    if (!hasHydrated) return;
-
-    // 1. Regular match finish trigger
-    if (matchHistory) {
-      if (prevHistoryCount.current !== null && matchHistory.length > prevHistoryCount.current) {
-        // A match completed! Play Bella Ciao celebrating the win
-        playBellaCiao175();
-      }
-      prevHistoryCount.current = matchHistory.length;
-    }
-
-    // 2. Finale Round/Winner trigger
-    const finaleState = gameState?.finaleState;
-    if (finaleState) {
-      const winsA = finaleState.winsA || 0;
-      const winsB = finaleState.winsB || 0;
-      const winner = finaleState.finaleWinner;
-
-      // Check for round win increment
-      if (prevWinsA.current !== null && winsA > prevWinsA.current) {
-        playBellaCiao175();
-      }
-      if (prevWinsB.current !== null && winsB > prevWinsB.current) {
-        playBellaCiao175();
-      }
-
-      // Check for absolute winner declaration
-      if (winner && prevWinner.current === null) {
-        playBellaCiao175();
-      }
-
-      prevWinsA.current = winsA;
-      prevWinsB.current = winsB;
-      prevWinner.current = winner;
-    }
-  }, [hasHydrated, matchHistory, gameState?.finaleState]);
+  // Audio for victory is managed directly inside the Finale showdown screen and doesn't fire in Wager mode.
 
   if (!hasHydrated) return null;
   if (!hasSupabaseConfig) return <MissingSupabaseConfig />;
