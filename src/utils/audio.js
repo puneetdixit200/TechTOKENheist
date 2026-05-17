@@ -104,3 +104,45 @@ export const playCountdownVoice = (number) => {
 
   window.speechSynthesis.speak(msg);
 };
+
+// Play Bella Ciao with 175% volume using Web Audio API GainNode
+export const playBellaCiao175 = () => {
+  try {
+    const ctx = getContext();
+    if (!ctx) {
+      throw new Error("Could not create AudioContext");
+    }
+
+    const audioUrl = new URL('../assets/Bella Ciao.mp3', import.meta.url).href;
+    const audio = new Audio(audioUrl);
+    audio.crossOrigin = "anonymous";
+
+    const source = ctx.createMediaElementSource(audio);
+    const gainNode = ctx.createGain();
+    
+    // Set volume multiplier to 1.75
+    gainNode.gain.setValueAtTime(1.75, ctx.currentTime);
+
+    source.connect(gainNode);
+    gainNode.connect(ctx.destination);
+
+    audio.play().catch(e => {
+      console.warn("Amplified Bella Ciao play blocked by browser:", e);
+      // Fallback: standard play if blocked
+      const fallbackAudio = new Audio(audioUrl);
+      fallbackAudio.volume = 1.0;
+      fallbackAudio.play().catch(err => console.error("Fallback Bella Ciao play failed:", err));
+    });
+  } catch (err) {
+    console.error("Web Audio Amplification failed for Bella Ciao:", err);
+    try {
+      const audioUrl = new URL('../assets/Bella Ciao.mp3', import.meta.url).href;
+      const audio = new Audio(audioUrl);
+      audio.volume = 1.0;
+      audio.play().catch(e => console.error("Direct Bella Ciao play failed:", e));
+    } catch (e) {
+      console.error(e);
+    }
+  }
+};
+

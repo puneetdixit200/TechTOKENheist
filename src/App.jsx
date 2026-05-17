@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect } from 'react';
+import { Suspense, lazy, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import { GameStateProvider, useGameState } from './hooks/useGameState';
 import { hasSupabaseConfig } from './lib/supabase';
@@ -6,7 +6,10 @@ import { LayoutDashboard, Swords, Crosshair, Book, Eye, Zap, VenetianMask, Users
 import CountdownOverlay from './components/CountdownOverlay';
 import MatchStartOverlay from './components/MatchStartOverlay';
 import FinaleOverlay from './components/FinaleOverlay';
+import WagerModeOverlay from './components/WagerModeOverlay';
+
 import { buildReadyQueuePairs } from './utils/matchmaking';
+import { playBellaCiao175 } from './utils/audio';
 import gdgLogo from '../assets/gdg.png';
 
 import './PlayerLayout.css';
@@ -219,7 +222,49 @@ const PlayerLayout = ({ children }) => {
 
 
 const AppContent = () => {
-  const { user, countdown, hasHydrated } = useGameState();
+  const { user, countdown, hasHydrated, matchHistory, gameState } = useGameState();
+  const prevHistoryCount = useRef(null);
+  const prevWinsA = useRef(null);
+  const prevWinsB = useRef(null);
+  const prevWinner = useRef(null);
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+
+    // 1. Regular match finish trigger
+    if (matchHistory) {
+      if (prevHistoryCount.current !== null && matchHistory.length > prevHistoryCount.current) {
+        // A match completed! Play Bella Ciao celebrating the win
+        playBellaCiao175();
+      }
+      prevHistoryCount.current = matchHistory.length;
+    }
+
+    // 2. Finale Round/Winner trigger
+    const finaleState = gameState?.finaleState;
+    if (finaleState) {
+      const winsA = finaleState.winsA || 0;
+      const winsB = finaleState.winsB || 0;
+      const winner = finaleState.finaleWinner;
+
+      // Check for round win increment
+      if (prevWinsA.current !== null && winsA > prevWinsA.current) {
+        playBellaCiao175();
+      }
+      if (prevWinsB.current !== null && winsB > prevWinsB.current) {
+        playBellaCiao175();
+      }
+
+      // Check for absolute winner declaration
+      if (winner && prevWinner.current === null) {
+        playBellaCiao175();
+      }
+
+      prevWinsA.current = winsA;
+      prevWinsB.current = winsB;
+      prevWinner.current = winner;
+    }
+  }, [hasHydrated, matchHistory, gameState?.finaleState]);
 
   if (!hasHydrated) return null;
   if (!hasSupabaseConfig) return <MissingSupabaseConfig />;
@@ -229,6 +274,7 @@ const AppContent = () => {
       <CountdownOverlay count={countdown} />
       {user?.role !== 'admin' && <MatchStartOverlay />}
       <FinaleOverlay />
+      {user?.role !== 'admin' && <WagerModeOverlay />}
       <Suspense fallback={<div className="route-loading" />}>
         <Routes>
           {/* Public */}
