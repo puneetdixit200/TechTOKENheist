@@ -10,6 +10,10 @@
     background: #020204;
 }
 
+.match-start-overlay.tearing {
+    pointer-events: none;
+}
+
 .loading-video-bg {
     position: absolute;
     inset: 0;
@@ -19,6 +23,7 @@
     object-fit: cover;
     background: #020204;
     filter: brightness(0.38) contrast(1.16) saturate(0.95);
+    transition: opacity 0.45s ease;
 }
 
 .background-container {
@@ -68,6 +73,21 @@
 
 .flash-animation {
     animation: flash 0.8s ease-out;
+}
+
+.website-reveal-fade {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    pointer-events: none;
+    opacity: 0;
+    background:
+        radial-gradient(circle at center, rgba(255, 255, 255, 0.14), rgba(0, 0, 0, 0.36) 34%, #000 72%),
+        #000;
+}
+
+.tearing .website-reveal-fade {
+    animation: websiteFadeIn 1.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .tear-wrapper {
@@ -272,6 +292,22 @@
 
     100% {
         opacity: 0;
+    }
+}
+
+@keyframes websiteFadeIn {
+    0% {
+        opacity: 1;
+        backdrop-filter: blur(10px);
+    }
+
+    45% {
+        opacity: 0.58;
+    }
+
+    100% {
+        opacity: 0;
+        backdrop-filter: blur(0);
     }
 }
 

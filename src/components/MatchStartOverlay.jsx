@@ -180,6 +180,7 @@ const MatchStartOverlay = () => {
       <div className="background-container" />
       <div className="overlay" />
       <div className={`flash-screen ${flashActive ? 'flash-animation' : ''}`} />
+      <div className="website-reveal-fade" aria-hidden="true" />
 
       <div className="tear-wrapper">
         <div className="tear-part tear-left" />
