@@ -3,6 +3,7 @@ import { useGameState } from '../hooks/useGameState';
 import { Activity, Radio, ShieldAlert } from 'lucide-react';
 import './FinaleOverlay.css';
 import tokenImg from '../../assets/token.png';
+import { buildFinaleScoreStatus } from '../utils/finaleScoreStatus';
 
 const TOTAL_ROUNDS = 5;
 const FINALE_AUDIO_SRC = new URL('../../assets/finale.mp3', import.meta.url).href;
@@ -730,75 +731,14 @@ const FinaleOverlay = () => {
 
   if (!finaleState || !finaleState.isFinaleActive || user?.role === 'admin') return null;
 
-  // Calculates score difference system with dual perspective
-  const getScoreDifferenceUI = () => {
-    const diff = resolvedWinsA - resolvedWinsB;
-    let gap;
-    let leadingTeam;
-    
-    const userIsTeamA = myTeam?.name === teamAName;
-    const userIsTeamB = myTeam?.name === teamBName;
-    
-    if (isFinalist && (userIsTeamA || userIsTeamB)) {
-      // Finalist perspective: gap is relative to the user's team
-      gap = userIsTeamA ? diff : -diff;
-      leadingTeam = myTeam.name;
-    } else {
-      // Spectator perspective: gap is positive, relative to the current leader
-      gap = Math.abs(diff);
-      leadingTeam = diff >= 0 ? teamAName : teamBName;
-    }
-
-    if (diff === 0) {
-      return {
-        cardClass: 'gap-even',
-        header: "DEAD EVEN",
-        title: "DEAD EVEN",
-        description: "The next round decides fate."
-      };
-    }
-
-    if (gap >= 3) {
-      return {
-        cardClass: 'gap-domination',
-        header: `+${gap} ${leadingTeam} LEADS`,
-        title: "TOTAL DOMINATION",
-        description: "They are crushing the battlefield."
-      };
-    } else if (gap === 2) {
-      return {
-        cardClass: 'gap-control',
-        header: `+${gap} ${leadingTeam} LEADS`,
-        title: "CONTROL ESTABLISHED",
-        description: "Momentum heavily favors them."
-      };
-    } else if (gap === 1) {
-      return {
-        cardClass: 'gap-narrow',
-        header: `+${gap} ${leadingTeam} LEADS`,
-        title: "NARROW ADVANTAGE",
-        description: "One mistake changes everything."
-      };
-    } else if (gap === -1) {
-      // trailing side: only active when user is a finalist trailing by 1
-      return {
-        cardClass: 'gap-pressure',
-        header: `-${Math.abs(gap)} BEHIND`,
-        title: "UNDER PRESSURE",
-        description: "They are one round away from collapse."
-      };
-    } else {
-      // trailing side: only active when user is a finalist trailing by 2 or more
-      return {
-        cardClass: 'gap-deficit',
-        header: `-${Math.abs(gap)} BEHIND`,
-        title: "CRITICAL DEFICIT",
-        description: "Only a miracle comeback remains."
-      };
-    }
-  };
-
-  const scoreDiffData = getScoreDifferenceUI();
+  const scoreDiffData = buildFinaleScoreStatus({
+    winsA: resolvedWinsA,
+    winsB: resolvedWinsB,
+    teamAName,
+    teamBName,
+    isFinalist,
+    userTeamName: myTeam?.name,
+  });
 
   return (
     <>
