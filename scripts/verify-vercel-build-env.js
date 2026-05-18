@@ -1,6 +1,11 @@
 import process from 'node:process'
+import { existsSync, readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { createClient } from '@supabase/supabase-js'
-import { validateSupabaseProductionEnv } from './vercel-env-utils.js'
+import { parseEnvFile, validateSupabaseProductionEnv } from './vercel-env-utils.js'
+
+const rootDir = fileURLToPath(new URL('..', import.meta.url))
 
 const validArgs = new Set(['--always'])
 const unknownArgs = process.argv.slice(2).filter((arg) => !validArgs.has(arg))
@@ -15,9 +20,24 @@ const isVercelProductionBuild =
   process.env.VERCEL_ENV === 'production'
 const forceVerification = process.argv.includes('--always')
 
+const loadLocalEnvValues = () => {
+  const fileValues = {}
+
+  for (const envFileName of ['.env.local', '.env.production.local']) {
+    const envFilePath = resolve(rootDir, envFileName)
+    if (existsSync(envFilePath)) {
+      Object.assign(fileValues, parseEnvFile(readFileSync(envFilePath, 'utf8')))
+    }
+  }
+
+  return { ...fileValues, ...process.env }
+}
+
+const envValues = loadLocalEnvValues()
+
 const createBuildSupabaseClient = () => createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.VITE_SUPABASE_ANON_KEY,
+  envValues.VITE_SUPABASE_URL,
+  envValues.VITE_SUPABASE_ANON_KEY,
   {
     auth: {
       persistSession: false,
@@ -87,7 +107,7 @@ const verifyProductionSupabaseSchema = async () => {
 }
 
 if (isVercelProductionBuild || forceVerification) {
-  const { missing, blank, invalid } = validateSupabaseProductionEnv(process.env)
+  const { missing, blank, invalid } = validateSupabaseProductionEnv(envValues)
 
   if (missing.length > 0) {
     console.error(`Vercel production build blocked. Missing required env vars: ${missing.join(', ')}`)
