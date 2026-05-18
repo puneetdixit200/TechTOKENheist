@@ -110,6 +110,8 @@ test('player startup uses the TechToken video behind the original Hindi and Engl
   assert.doesNotMatch(matchStartOverlay, /fetch\(/)
   assert.match(matchStartCss, /loading-video-bg/)
   assert.match(matchStartCss, /object-fit:\s*cover/)
+  assert.match(matchStartCss, /brightness\(0\.38\)/)
+  assert.match(matchStartCss, /rgba\(0,\s*0,\s*0,\s*0\.9\)/)
   assert.match(matchStartCss, /void_bg\.png/)
   assert.match(matchStartCss, /Cinzel/)
   assert.match(matchStartCss, /\.subtitle-phase \.hindi/)
