@@ -40,13 +40,9 @@ const CONTENT_TYPES = new Map([
   ['.html', 'text/html; charset=utf-8'],
   ['.js', 'text/javascript; charset=utf-8'],
   ['.json', 'application/json; charset=utf-8'],
-  ['.m4v', 'video/mp4'],
-  ['.mov', 'video/quicktime'],
-  ['.mp4', 'video/mp4'],
   ['.mp3', 'audio/mpeg'],
   ['.png', 'image/png'],
   ['.svg', 'image/svg+xml'],
-  ['.webm', 'video/webm'],
   ['.webp', 'image/webp'],
 ])
 
@@ -379,7 +375,7 @@ const routeChecks = [
     name: 'startup-countdown-configured',
     route: '/about',
     viewport: { width: 1366, height: 768 },
-    text: 'LIMITLESS COUNTDOWN',
+    text: 'GAME STARTING IN',
     systemMode: 'starting',
     storageValue: createPersistedAuth({
       role: 'player',

@@ -4,34 +4,6 @@ import './MatchStartOverlay.css';
 
 const START_DURATION_MS = 10_000;
 const EXIT_DURATION_MS = 1_400;
-const loadingVideoModules = import.meta.glob([
-  '../../assets/**/*.{mp4,webm,mov,m4v}',
-  '../../*.{mp4,webm,mov,m4v}',
-], {
-  eager: true,
-  import: 'default',
-});
-
-const VIDEO_NAME_PATTERN = /(tech[-_\s]*token|techtoken|loading|loader|countdown|heist)/i;
-const loadingVideoEntries = Object.entries(loadingVideoModules);
-const preferredVideoEntries = loadingVideoEntries.filter(([path]) => VIDEO_NAME_PATTERN.test(path));
-const getVideoPriority = (path) => {
-  const lowerPath = path.toLowerCase();
-  let priority = 0;
-  if (lowerPath.includes('techtoken') || lowerPath.includes('tech-token') || lowerPath.includes('tech_token')) priority += 6;
-  if (lowerPath.includes('loading') || lowerPath.includes('loader')) priority += 5;
-  if (lowerPath.includes('countdown')) priority += 3;
-  if (lowerPath.endsWith('.mp4')) priority += 2;
-  if (lowerPath.endsWith('.webm')) priority += 1;
-  return priority;
-};
-const getVideoType = (path) => (path.endsWith('.webm') ? 'video/webm' : 'video/mp4');
-const LOADING_VIDEO_SOURCES = (preferredVideoEntries.length > 0 ? preferredVideoEntries : loadingVideoEntries)
-  .sort(([pathA], [pathB]) => getVideoPriority(pathB) - getVideoPriority(pathA))
-  .map(([path, src]) => ({
-    src,
-    type: getVideoType(path),
-  }));
 
 const toMillis = (value) => {
   if (!value) return null;
@@ -67,7 +39,6 @@ const MatchStartOverlay = () => {
   const timerPulseRef = useRef(false);
   const pendingTimeoutsRef = useRef([]);
   const countdownKeyRef = useRef(null);
-  const videoSource = LOADING_VIDEO_SOURCES[0] || null;
 
   const clearPendingTimeouts = () => {
     pendingTimeoutsRef.current.forEach((id) => clearTimeout(id));
@@ -136,29 +107,29 @@ const MatchStartOverlay = () => {
       const progress = Math.min(1, elapsedMs / Math.max(1, countdownDurationMs));
 
       setTimer(Math.max(0, remainingMs / 1000));
-      setShowAnnouncement(progress < 0.42);
-      setShowSubtitles(progress >= 0.36);
+      setShowAnnouncement(progress < 0.4);
+      setShowSubtitles(progress >= 0.7);
 
-      if (progress >= 0.38 && !audioPlayedRef.current) {
+      if (progress >= 0.4 && !audioPlayedRef.current) {
         audioPlayedRef.current = true;
         audioRef.current?.play().catch((error) => console.log('Audio play blocked', error));
       }
 
-      if (progress >= 0.42 && !flashPlayedRef.current) {
+      if (progress >= 0.4 && !flashPlayedRef.current) {
         flashPlayedRef.current = true;
         setFlashActive(true);
-        scheduleTimeout(() => setFlashActive(false), 700);
+        scheduleTimeout(() => setFlashActive(false), 800);
       }
 
-      if (progress >= 0.72 && !timerPulseRef.current) {
+      if (progress >= 0.6 && !timerPulseRef.current) {
         timerPulseRef.current = true;
         setTimerPulse(true);
       }
 
-      if (progress >= 0.72) {
-        setPhase(2);
-      } else if (progress >= 0.42) {
+      if (progress >= 0.7 && progress < 0.85) {
         setPhase(1);
+      } else if (progress >= 0.85) {
+        setPhase(2);
       } else {
         setPhase(0);
       }
@@ -192,60 +163,38 @@ const MatchStartOverlay = () => {
   if (!active || isFinished) return null;
 
   return (
-    <div className={`match-start-overlay infinite-void ${videoSource ? 'has-loading-video' : 'has-image-fallback'} ${isTearing ? 'tearing' : ''} ${phase === 2 ? 'void-mode' : ''} ${timerPulse ? 'pulse-timer' : ''}`}>
+    <div className={`match-start-overlay ${isTearing ? 'tearing' : ''} ${phase === 2 ? 'void-mode' : ''} ${timerPulse ? 'pulse-timer' : ''}`}>
       <audio ref={audioRef} src={new URL('../../assets/anant.mp3', import.meta.url).href} />
 
-      <div className="background-container" aria-hidden="true" />
-      {videoSource && (
-        <video
-          className="loading-video-bg"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-          aria-hidden="true"
-        >
-          <source src={videoSource.src} type={videoSource.type} />
-        </video>
-      )}
+      <div className="background-container" />
       <div className="overlay" />
       <div className={`flash-screen ${flashActive ? 'flash-animation' : ''}`} />
-      <div className="void-aura aura-left" />
-      <div className="void-aura aura-right" />
-      <div className="infinite-void-ring ring-one" />
-      <div className="infinite-void-ring ring-two" />
-      <div className="infinite-void-ring ring-three" />
 
       <div className="tear-wrapper">
         <div className="tear-part tear-left" />
         <div className="tear-part tear-right" />
 
-        <div className="content-container void-countdown-shell">
+        <div className="content-container">
           <div className={`announcement ${showAnnouncement ? 'visible' : ''}`}>
-            LIMITLESS COUNTDOWN
-          </div>
-
-          <div className="void-eye-mark" aria-hidden="true">
-            <span />
-            <span />
+            GAME STARTING IN {Math.ceil(timer)}
           </div>
 
           <div className="timer-container">
             <div className={`timer-value ${phase >= 1 ? 'glitch' : ''}`}>{Math.ceil(timer)}</div>
-            <div className="timer-caption">SECONDS UNTIL BREACH</div>
           </div>
 
           <div className={`subtitles ${showSubtitles ? 'visible' : ''}`}>
             {phase === 1 && (
               <div className="subtitle-phase phase-1" key="phase-1">
-                <div className="english">DOMAIN EXPANSION</div>
-                <div className="translation">LIMITLESS TECHNIQUE DEPLOYING</div>
+                <div className="hindi">क्षेत्र विस्तार</div>
+                <div className="english">KSHETRA VISTĀRAM</div>
+                <div className="translation">DOMAIN EXPANSION</div>
               </div>
             )}
             {phase === 2 && (
               <div className="subtitle-phase phase-2" key="phase-2">
-                <div className="english">ANANT SHUNYATA</div>
+                <div className="hindi">अनन्त शून्यता</div>
+                <div className="english">ANANTA ŚŪNYATĀ</div>
                 <div className="translation">INFINITE VOID</div>
               </div>
             )}
