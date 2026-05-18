@@ -4,7 +4,7 @@ import { hasSupabaseConfig } from '../lib/supabase';
 import {
   VenetianMask, Banknote, Lock, Bomb, Users, Search, Flame, Settings,
   Plus, X, Fingerprint, Wallet, Map, ScrollText, Crown, Zap, AlertTriangle, Clock,
-  Skull, Trophy, Swords, Activity
+  Skull, Trophy, Swords, Activity, Eye, EyeOff, Download
 } from 'lucide-react';
 import DomainWheel from '../components/DomainWheel';
 import { buildQueueDiagnostics, buildTeamMatchmakingDiagnostics } from '../utils/matchmaking';
@@ -71,6 +71,7 @@ const AdminScreen = () => {
     rematchQueue,
     endMatchAndStartFinale, setFinaleDomain,
     declareFinaleRoundWinner, endFinale,
+    seedAllTeams, getTeamPasswords,
     _invoke
   } = useGameState();
 
@@ -128,6 +129,33 @@ const AdminScreen = () => {
   const [domainInput, setDomainInput] = useState('');
   const [timeoutInput, setTimeoutInput] = useState('');
   const [selectedFinaleDomain, setSelectedFinaleDomain] = useState('');
+
+  // Team password management (admin-only)
+  const [teamPasswords, setTeamPasswords] = useState({});  // { teamId: password }
+  const [visiblePasswords, setVisiblePasswords] = useState(new Set());
+  const [passwordsLoaded, setPasswordsLoaded] = useState(false);
+
+  const fetchTeamPasswords = async () => {
+    const res = await getTeamPasswords();
+    if (res?.success && res.data?.passwords) {
+      const pwMap = {};
+      res.data.passwords.forEach((p) => { pwMap[p.id] = p.password; });
+      setTeamPasswords(pwMap);
+      setPasswordsLoaded(true);
+    }
+  };
+
+  useEffect(() => {
+    fetchTeamPasswords();
+  }, [teams.length]);
+
+  const togglePasswordVisibility = (teamId) => {
+    setVisiblePasswords((prev) => {
+      const next = new Set(prev);
+      if (next.has(teamId)) { next.delete(teamId); } else { next.add(teamId); }
+      return next;
+    });
+  };
 
   const domains = useMemo(
     () => gameState.domains || ['Tech Pitch', 'Tech Quiz', 'Guess Output', 'Frontend Dev', 'Feature Addition'],
@@ -595,7 +623,25 @@ const AdminScreen = () => {
 
             {/* Right Panel - List */}
             <div className="panel-container border-2 border-[#333] p-6 relative overflow-hidden flex flex-col bg-blueprint">
-              <h3 className="heist-font text-white text-3xl mb-6 tracking-wider relative z-10">ALL RECRUITS ({teams.length})</h3>
+              <div className="flex items-center justify-between mb-6 relative z-10">
+                <h3 className="heist-font text-white text-3xl tracking-wider">ALL RECRUITS ({teams.length})</h3>
+                <button
+                  className={`border border-heist-teal text-heist-teal px-4 py-2 heist-font text-sm tracking-wider hover:bg-heist-teal hover:text-black transition-colors flex items-center gap-2 ${actionInProgress ? 'opacity-50 cursor-wait' : ''}`}
+                  onClick={() => setConfirmConfig({
+                    title: 'SEED ALL TEAMS',
+                    message: 'This will create/update all 28 pre-registered teams with their assigned passwords. Proceed?',
+                    type: 'warning',
+                    onConfirm: () => safeAction('seedAllTeams', async () => {
+                      const res = await seedAllTeams();
+                      if (res?.success) await fetchTeamPasswords();
+                      return res;
+                    })
+                  })}
+                  disabled={!!actionInProgress}
+                >
+                  <Download size={14} /> {actionInProgress === 'seedAllTeams' ? 'SEEDING...' : 'SEED ALL TEAMS'}
+                </button>
+              </div>
 
               <div className="flex-1 overflow-y-auto pr-2 flex flex-col gap-3 relative z-10">
                 {teams.length === 0 && (
@@ -620,6 +666,26 @@ const AdminScreen = () => {
                       <div className="heist-mono text-xs text-gray-400 mt-2 leading-relaxed break-words">
                         <div><span className="text-gray-500 uppercase">Leader:</span> <span className="text-gray-300">{t.leader || 'Unassigned'}</span></div>
                         <div><span className="text-gray-500 uppercase">Members:</span> <span className="text-gray-300">{(t.memberNames || []).length ? t.memberNames.join(', ') : 'No members listed'}</span></div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-gray-500 uppercase">Password:</span>
+                          {passwordsLoaded ? (
+                            <span className="flex items-center gap-1">
+                              <span className="text-heist-yellow heist-mono select-all">
+                                {visiblePasswords.has(t.id) ? (teamPasswords[t.id] || '—') : '••••••'}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => togglePasswordVisibility(t.id)}
+                                className="text-gray-500 hover:text-heist-yellow transition-colors p-0.5"
+                                title={visiblePasswords.has(t.id) ? 'Hide password' : 'Show password'}
+                              >
+                                {visiblePasswords.has(t.id) ? <EyeOff size={12} /> : <Eye size={12} />}
+                              </button>
+                            </span>
+                          ) : (
+                            <span className="text-gray-600">Loading...</span>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto border-t border-gray-800 sm:border-0 pt-3 sm:pt-0">
