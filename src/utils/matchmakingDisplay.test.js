@@ -115,10 +115,13 @@ test('finale screen avoids emoji glyph alignment and exposes music controls befo
 
   assert.match(finaleOverlay, /const FinaleAudioPlayer = \(/)
   assert.match(finaleOverlay, /<FinaleAudioPlayer/)
-  assert.doesNotMatch(finaleOverlay, /🐺/)
+  assert.doesNotMatch(finaleOverlay, /\u{1F43A}/u)
+  assert.doesNotMatch(finaleOverlay, /\u{1F98A}/u)
   assert.match(finaleOverlay, /<div className="hologram-emblem-crimson" aria-hidden="true" \/>/)
   assert.match(finaleOverlay, /<div className="hologram-emblem-blue" aria-hidden="true" \/>/)
   assert.doesNotMatch(finaleOverlay, /hologram-emblem-(crimson|blue)">[AB]/)
+  assert.match(finaleCss, /\.side-right-neon \.battle-side-hud \{[\s\S]*text-align:\s*right/)
+  assert.match(finaleCss, /\.hologram-emblem-blue \{[\s\S]*mask:\s*url\("data:image\/svg\+xml/)
   assert.match(finaleCss, /\.finale-audio-player/)
   const finaleAudioBlock = finaleCss.slice(
     finaleCss.indexOf('.finale-audio-player {'),
