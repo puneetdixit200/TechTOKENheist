@@ -1,40 +1,69 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;600&display=swap');
-
 .match-start-overlay {
     position: fixed;
     inset: 0;
     z-index: 10000;
     overflow: hidden;
-    font-family: 'Inter', sans-serif;
-    color: #fff;
-    background: transparent;
+    font-family: 'Space Mono', 'Share Tech Mono', monospace;
+    color: #f8fbff;
+    background: #02040a;
+    isolation: isolate;
 }
 
 .background-container {
     position: absolute;
     inset: 0;
-    background-image: url('../../assets/void_bg.png');
+    background-image:
+        linear-gradient(120deg, rgba(6, 12, 32, 0.7), rgba(1, 5, 13, 0.88)),
+        url('../../assets/void_bg.png');
     background-size: cover;
     background-position: center;
-    filter: brightness(0.4) contrast(1.2);
+    filter: saturate(0.95) brightness(0.56) contrast(1.35);
+    transform: scale(1.08);
     transition: transform 10s linear, filter 1s ease, opacity 0.7s ease;
-    z-index: -1;
+    z-index: -4;
     opacity: 1;
+    animation: voidDrift 10s linear forwards;
 }
 
-.match-start-overlay .background-container {
-    transform: scale(1.1);
-    filter: brightness(0.6) contrast(1.35);
+.match-start-overlay::before {
+    content: '';
+    position: absolute;
+    inset: -20%;
+    z-index: -3;
+    background:
+        radial-gradient(circle at 50% 46%, rgba(255, 255, 255, 0.32), transparent 0.9rem),
+        radial-gradient(circle at 50% 46%, rgba(77, 214, 255, 0.28), transparent 12rem),
+        radial-gradient(circle at 42% 35%, rgba(128, 88, 255, 0.18), transparent 18rem),
+        radial-gradient(circle at 58% 65%, rgba(0, 198, 255, 0.18), transparent 20rem);
+    filter: blur(2px);
+    animation: auraBreathe 3.4s ease-in-out infinite;
+}
+
+.match-start-overlay::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+        linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        radial-gradient(circle at center, transparent 0%, rgba(0, 0, 0, 0.78) 76%);
+    background-size: 42px 42px, 42px 42px, cover;
+    mix-blend-mode: screen;
+    opacity: 0.52;
+    pointer-events: none;
 }
 
 .void-mode .background-container {
-    filter: hue-rotate(280deg) brightness(0.7) contrast(1.5);
+    filter: hue-rotate(190deg) brightness(0.68) contrast(1.62) saturate(1.5);
 }
 
 .overlay {
     position: absolute;
     inset: 0;
-    background: radial-gradient(circle at center, transparent 0%, rgba(0, 0, 0, 0.8) 100%);
+    background:
+        radial-gradient(circle at center, rgba(255, 255, 255, 0.04) 0 6rem, transparent 12rem),
+        radial-gradient(circle at center, transparent 0%, rgba(0, 0, 0, 0.88) 100%);
     pointer-events: none;
     z-index: 1;
     transition: opacity 0.45s ease;
@@ -43,14 +72,74 @@
 .flash-screen {
     position: absolute;
     inset: 0;
-    background: #fff;
+    background: #f8fbff;
     opacity: 0;
     z-index: 30;
     pointer-events: none;
 }
 
 .flash-animation {
-    animation: flash 0.8s ease-out;
+    animation: flash 0.7s ease-out;
+}
+
+.void-aura,
+.infinite-void-ring {
+    position: absolute;
+    pointer-events: none;
+}
+
+.void-aura {
+    width: 34vw;
+    min-width: 18rem;
+    aspect-ratio: 1;
+    border-radius: 999px;
+    z-index: 2;
+    filter: blur(18px);
+    opacity: 0.28;
+}
+
+.aura-left {
+    left: -8vw;
+    top: 12vh;
+    background: radial-gradient(circle, rgba(115, 90, 255, 0.64), transparent 68%);
+}
+
+.aura-right {
+    right: -6vw;
+    bottom: 8vh;
+    background: radial-gradient(circle, rgba(50, 210, 255, 0.72), transparent 68%);
+}
+
+.infinite-void-ring {
+    left: 50%;
+    top: 50%;
+    border-radius: 999px;
+    border: 1px solid rgba(165, 232, 255, 0.22);
+    box-shadow:
+        0 0 28px rgba(83, 213, 255, 0.16),
+        inset 0 0 28px rgba(255, 255, 255, 0.08);
+    transform: translate(-50%, -50%);
+    z-index: 3;
+}
+
+.ring-one {
+    width: min(64vw, 44rem);
+    aspect-ratio: 1;
+    animation: ringRotate 8s linear infinite;
+}
+
+.ring-two {
+    width: min(46vw, 31rem);
+    aspect-ratio: 1;
+    border-style: dashed;
+    animation: ringRotate 5.5s linear reverse infinite;
+}
+
+.ring-three {
+    width: min(24vw, 16rem);
+    aspect-ratio: 1;
+    border-color: rgba(255, 255, 255, 0.5);
+    animation: ringPulse 1.6s ease-in-out infinite;
 }
 
 .tear-wrapper {
@@ -67,7 +156,7 @@
     width: 50%;
     height: 100%;
     background-image:
-        linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(0, 0, 0, 0.45)),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(0, 16, 32, 0.68)),
         url('../../assets/void_bg.png');
     background-size: cover;
     background-position: center;
@@ -80,14 +169,14 @@
 
 .tear-left {
     left: 0;
-    border-right: 1px solid rgba(255, 255, 255, 0.9);
-    box-shadow: inset -12px 0 30px rgba(0, 0, 0, 0.6);
+    border-right: 1px solid rgba(213, 245, 255, 0.96);
+    box-shadow: inset -16px 0 42px rgba(18, 223, 255, 0.18);
 }
 
 .tear-right {
     right: 0;
-    border-left: 1px solid rgba(255, 255, 255, 0.9);
-    box-shadow: inset 12px 0 30px rgba(0, 0, 0, 0.6);
+    border-left: 1px solid rgba(213, 245, 255, 0.96);
+    box-shadow: inset 16px 0 42px rgba(124, 91, 255, 0.2);
 }
 
 .content-container {
@@ -102,15 +191,20 @@
     padding: 2rem;
 }
 
+.void-countdown-shell {
+    text-align: center;
+}
+
 .announcement {
     text-align: center;
-    font-size: 1.4rem;
-    letter-spacing: 0.5em;
+    font-size: clamp(0.8rem, 1.4vw, 1.2rem);
+    letter-spacing: 0.45em;
     text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.7);
-    margin-bottom: 2.5rem;
+    color: rgba(217, 247, 255, 0.76);
+    margin-bottom: 1.3rem;
     opacity: 0;
     transition: opacity 0.8s ease;
+    text-shadow: 0 0 18px rgba(96, 221, 255, 0.48);
 }
 
 .announcement.visible {
@@ -118,21 +212,54 @@
     animation: announceIn 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
+.void-eye-mark {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(1.4rem, 4vw, 3rem);
+    margin-bottom: 0.7rem;
+}
+
+.void-eye-mark span {
+    width: clamp(2.2rem, 5vw, 4.2rem);
+    height: clamp(0.42rem, 0.9vw, 0.68rem);
+    border-radius: 999px;
+    background: #f7fcff;
+    box-shadow:
+        0 0 18px rgba(255, 255, 255, 0.82),
+        0 0 34px rgba(82, 213, 255, 0.72);
+    transform: skewX(-16deg);
+}
+
 .timer-container {
-    margin-bottom: 2rem;
+    margin-bottom: 1.2rem;
     text-align: center;
 }
 
 .timer-value {
     margin: 0;
-    font-size: clamp(5rem, 14vw, 12rem);
-    font-weight: 600;
+    font-family: 'Archivo Black', 'Bebas Neue', sans-serif;
+    font-size: clamp(6.4rem, 18vw, 15rem);
+    font-weight: 900;
     font-variant-numeric: tabular-nums;
-    letter-spacing: -0.05em;
-    text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
-    opacity: 0.85;
-    transition: all 0.3s ease;
+    line-height: 0.84;
+    color: #f8fbff;
+    text-shadow:
+        0 0 1px #ffffff,
+        0 0 22px rgba(255, 255, 255, 0.72),
+        0 0 58px rgba(70, 214, 255, 0.62),
+        0 0 96px rgba(116, 91, 255, 0.42);
+    opacity: 0.96;
+    transition: transform 0.3s ease, filter 0.3s ease;
     animation: timerReveal 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.timer-caption {
+    margin-top: 1.15rem;
+    font-size: clamp(0.62rem, 1vw, 0.86rem);
+    color: rgba(180, 229, 246, 0.72);
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
 }
 
 .pulse-timer .timer-value {
@@ -141,8 +268,8 @@
 
 .subtitles {
     width: 100%;
+    min-height: 5.3rem;
     text-align: center;
-    font-family: 'Cinzel', serif;
     opacity: 0;
     transform: translateY(20px);
     transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
@@ -158,43 +285,40 @@
     animation: subtitleEnter 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-.subtitle-phase .hindi {
-    font-size: clamp(2rem, 6vw, 2.8rem);
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    margin-bottom: 0.4rem;
-}
-
 .subtitle-phase .english {
-    font-size: clamp(1.5rem, 4vw, 2.2rem);
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    margin-bottom: 0.25rem;
+    font-family: 'Archivo Black', 'Bebas Neue', sans-serif;
+    font-size: clamp(2rem, 5vw, 4.2rem);
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    margin-bottom: 0.45rem;
+    line-height: 0.95;
 }
 
 .subtitle-phase .translation {
-    font-size: clamp(1rem, 2.4vw, 1.5rem);
-    letter-spacing: 0.05em;
+    font-size: clamp(0.8rem, 1.7vw, 1.12rem);
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
 }
 
-.phase-1 .hindi,
 .phase-1 .english {
     color: #ffffff;
-    text-shadow: 0 0 20px rgba(255, 255, 255, 0.6);
+    text-shadow: 0 0 28px rgba(255, 255, 255, 0.72);
 }
 
 .phase-1 .translation {
-    color: #cccccc;
+    color: #96deff;
 }
 
-.phase-2 .hindi,
 .phase-2 .english {
-    color: #bc6ff1;
-    text-shadow: 0 0 25px #892cdc;
+    color: #eafaff;
+    text-shadow:
+        0 0 18px #ffffff,
+        0 0 42px #41d8ff,
+        0 0 76px #8a6dff;
 }
 
 .phase-2 .translation {
-    color: #d9bbf9;
+    color: #8be7ff;
     font-weight: 700;
 }
 
@@ -208,7 +332,9 @@
 }
 
 .tearing .background-container,
-.tearing .overlay {
+.tearing .overlay,
+.tearing .void-aura,
+.tearing .infinite-void-ring {
     opacity: 0;
 }
 
@@ -229,27 +355,72 @@
     animation: glitch 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both infinite;
 }
 
-@keyframes pulse {
+@keyframes voidDrift {
     0% {
+        transform: scale(1.02);
+    }
+
+    100% {
+        transform: scale(1.12);
+    }
+}
+
+@keyframes auraBreathe {
+    0%,
+    100% {
+        opacity: 0.62;
         transform: scale(1);
-        opacity: 0.8;
     }
 
     50% {
-        transform: scale(1.05);
         opacity: 1;
-        text-shadow: 0 0 40px rgba(255, 255, 255, 0.8);
+        transform: scale(1.04);
+    }
+}
+
+@keyframes ringRotate {
+    0% {
+        transform: translate(-50%, -50%) rotate(0deg);
+    }
+
+    100% {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+}
+
+@keyframes ringPulse {
+    0%,
+    100% {
+        opacity: 0.38;
+        transform: translate(-50%, -50%) scale(0.96);
+    }
+
+    50% {
+        opacity: 0.86;
+        transform: translate(-50%, -50%) scale(1.04);
+    }
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        filter: brightness(1);
+    }
+
+    50% {
+        transform: scale(1.055);
+        filter: brightness(1.18);
     }
 
     100% {
         transform: scale(1);
-        opacity: 0.8;
+        filter: brightness(1);
     }
 }
 
 @keyframes flash {
     0% {
-        opacity: 0.8;
+        opacity: 0.78;
     }
 
     100% {
@@ -283,18 +454,6 @@
     }
 }
 
-@media (max-width: 768px) {
-    .announcement {
-        font-size: 0.9rem;
-        letter-spacing: 0.28em;
-        margin-bottom: 1.5rem;
-    }
-
-    .content-container {
-        padding: 1.25rem;
-    }
-}
-
 @keyframes announceIn {
     0% {
         opacity: 0;
@@ -305,19 +464,19 @@
     100% {
         opacity: 1;
         transform: translateY(0);
-        letter-spacing: 0.5em;
+        letter-spacing: 0.45em;
     }
 }
 
 @keyframes timerReveal {
     0% {
         opacity: 0;
-        transform: scale(0.9);
-        filter: blur(4px);
+        transform: scale(0.92);
+        filter: blur(5px);
     }
 
     100% {
-        opacity: 0.85;
+        opacity: 0.96;
         transform: scale(1);
         filter: blur(0);
     }
@@ -344,8 +503,8 @@
     }
 
     100% {
-        transform: scale(1.05);
-        filter: brightness(1.05);
+        transform: scale(1.035);
+        filter: brightness(1.08);
     }
 }
 
@@ -366,5 +525,37 @@
 
     100% {
         transform: translateX(100%);
+    }
+}
+
+@media (max-width: 768px) {
+    .announcement {
+        letter-spacing: 0.28em;
+        margin-bottom: 1rem;
+    }
+
+    .content-container {
+        padding: 1.25rem;
+    }
+
+    .ring-one {
+        width: 84vw;
+    }
+
+    .ring-two {
+        width: 62vw;
+    }
+
+    .ring-three {
+        width: 34vw;
+    }
+
+    .subtitle-phase .english {
+        letter-spacing: 0.06em;
+    }
+
+    .subtitle-phase .translation,
+    .timer-caption {
+        letter-spacing: 0.18em;
     }
 }

@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGameState } from '../hooks/useGameState';
+import { getAuthenticatedHomePath } from '../utils/routeAccess';
 import { Lock, ArrowLeft } from 'lucide-react';
 import './LoginScreen.css';
 
 const LoginScreen = () => {
   const navigate = useNavigate();
-  const { login } = useGameState();
+  const { login, gameState } = useGameState();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -26,7 +27,7 @@ const LoginScreen = () => {
         if (result.role === 'admin') {
           navigate('/admin');
         } else {
-          navigate('/lobby');
+          navigate(getAuthenticatedHomePath({ role: 'player', teamId: result.teamId }, gameState) || '/about');
         }
       } else {
         setError(result.error || 'Access Denied');

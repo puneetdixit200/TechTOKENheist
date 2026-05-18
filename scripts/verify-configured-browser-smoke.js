@@ -173,39 +173,55 @@ const emptyFulfill = (route, status = 204) => route.fulfill({
   body: '',
 })
 
-const createSmokeRows = () => ({
-  system: [{
-    key: 'game',
-    status: 'not_started',
-    is_game_active: false,
-    is_paused: false,
-    phase: 'phase1',
-    game_started_at: null,
-    paused_at: null,
-    timeout_duration_override: null,
-    domains: ['Tech Pitch', 'Tech Quiz', 'Guess Output', 'Frontend Dev', 'Feature Addition'],
-  }],
-  teams: [{
-    id: CONFIGURED_TEAM_ID,
-    name: 'Configured Smoke',
-    member_names: ['Configured Leader'],
-    leader: 'Configured Leader',
-    tokens: 1,
-    status: 'idle',
-    total_time: 0,
-    timeout_until: null,
-    last_token_update_time: null,
-    created_at: new Date().toISOString(),
-  }],
-  matchmaking_queue: [],
-  active_matches: [],
-  match_history: [],
-  notifications: [],
-  token_history: [],
-})
+const createSmokeRows = ({ systemMode = 'not_started' } = {}) => {
+  const now = Date.now()
+  const systemOverrides = systemMode === 'starting'
+    ? {
+        status: 'starting',
+        is_game_active: false,
+        countdown_started_at: now,
+        countdown_duration_ms: 10_000,
+        game_started_at: now + 10_000,
+      }
+    : {}
 
-const createReadOnlySupabaseRouteHandler = () => {
-  const rows = createSmokeRows()
+  return {
+    system: [{
+      key: 'game',
+      status: 'not_started',
+      is_game_active: false,
+      is_paused: false,
+      phase: 'phase1',
+      game_started_at: null,
+      paused_at: null,
+      countdown_started_at: null,
+      countdown_duration_ms: null,
+      timeout_duration_override: null,
+      domains: ['Tech Pitch', 'Tech Quiz', 'Guess Output', 'Frontend Dev', 'Feature Addition'],
+      ...systemOverrides,
+    }],
+    teams: [{
+      id: CONFIGURED_TEAM_ID,
+      name: 'Configured Smoke',
+      member_names: ['Configured Leader'],
+      leader: 'Configured Leader',
+      tokens: 1,
+      status: 'idle',
+      total_time: 0,
+      timeout_until: null,
+      last_token_update_time: null,
+      created_at: new Date().toISOString(),
+    }],
+    matchmaking_queue: [],
+    active_matches: [],
+    match_history: [],
+    notifications: [],
+    token_history: [],
+  }
+}
+
+const createReadOnlySupabaseRouteHandler = (options = {}) => {
+  const rows = createSmokeRows(options)
 
   return async (route) => {
     const request = route.request()
@@ -290,10 +306,10 @@ const routeChecks = [
     }),
   },
   {
-    name: 'player-configured',
+    name: 'prestart-lobby-lock-configured',
     route: '/lobby',
     viewport: { width: 390, height: 844 },
-    text: 'AWAITING',
+    text: 'RVITM BENGALURU',
     storageValue: createPersistedAuth({
       role: 'player',
       teamId: CONFIGURED_TEAM_ID,
@@ -301,10 +317,10 @@ const routeChecks = [
     }),
   },
   {
-    name: 'arena-configured',
+    name: 'prestart-arena-lock-configured',
     route: '/arena',
     viewport: { width: 1366, height: 768 },
-    text: 'ARENA LOCKED',
+    text: 'RVITM BENGALURU',
     storageValue: createPersistedAuth({
       role: 'player',
       teamId: CONFIGURED_TEAM_ID,
@@ -312,10 +328,10 @@ const routeChecks = [
     }),
   },
   {
-    name: 'battle-configured',
+    name: 'prestart-battle-lock-configured',
     route: '/battle',
     viewport: { width: 1366, height: 768 },
-    text: 'COMBAT FEED',
+    text: 'RVITM BENGALURU',
     storageValue: createPersistedAuth({
       role: 'player',
       teamId: CONFIGURED_TEAM_ID,
@@ -323,10 +339,10 @@ const routeChecks = [
     }),
   },
   {
-    name: 'rulebook-configured',
+    name: 'prestart-rulebook-lock-configured',
     route: '/rulebook',
     viewport: { width: 1366, height: 768 },
-    text: 'THE PLAN',
+    text: 'RVITM BENGALURU',
     storageValue: createPersistedAuth({
       role: 'player',
       teamId: CONFIGURED_TEAM_ID,
@@ -355,6 +371,18 @@ const routeChecks = [
       teamName: 'Configured Smoke',
     }),
   },
+  {
+    name: 'startup-countdown-configured',
+    route: '/about',
+    viewport: { width: 1366, height: 768 },
+    text: 'LIMITLESS COUNTDOWN',
+    systemMode: 'starting',
+    storageValue: createPersistedAuth({
+      role: 'player',
+      teamId: CONFIGURED_TEAM_ID,
+      teamName: 'Configured Smoke',
+    }),
+  },
 ]
 
 const assertConfiguredRoute = async ({ browser, baseUrl, check }) => {
@@ -369,7 +397,7 @@ const assertConfiguredRoute = async ({ browser, baseUrl, check }) => {
       consoleErrors.push(text)
     }
   })
-  await page.route(`${SMOKE_SUPABASE_URL}/**`, createReadOnlySupabaseRouteHandler())
+  await page.route(`${SMOKE_SUPABASE_URL}/**`, createReadOnlySupabaseRouteHandler(check))
 
   if (check.storageValue) {
     await page.addInitScript(({ key, value }) => {
