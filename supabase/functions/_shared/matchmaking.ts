@@ -1,24 +1,56 @@
 // Matchmaking helpers shared by edge functions.
 
+const DEFAULT_DOMAINS = ['Tech Pitch', 'Tech Quiz', 'Guess Output', 'Frontend Dev', 'Feature Addition'];
+
+function sanitizeConfiguredDomains(domains) {
+    const seen = new Set();
+    const sanitized = [];
+    for (const domain of domains || []) {
+        const value = String(domain || '').trim();
+        const key = value.toLowerCase();
+        if (!value || seen.has(key)) continue;
+        seen.add(key);
+        sanitized.push(value);
+    }
+    return sanitized.length >= 2 ? sanitized : DEFAULT_DOMAINS;
+}
+
 export function buildConstraintsFromHistory(matchHistory, teams, currentPhase) {
     const constraints = {};
     const teamByName = new Map((teams || []).map((t) => [t.name, t.id]));
+    const lastDomainByTeamId = new Map();
+    const lastOpponentByTeamId = new Map();
 
     teams.forEach((t) => {
         constraints[t.id] = { opponents: {}, domains: {}, combos: {}, lastOpponent: null, lastDomain: null };
     });
 
-    // Only consider history from the current phase to provide a "fresh slate" for Wager mode
-    const phaseHistory = currentPhase 
-        ? (matchHistory || []).filter(m => (m.phase || 'phase1') === currentPhase)
-        : (matchHistory || []);
-
     // Sort by created_at ascending to process in chronological order
-    const sorted = [...phaseHistory].sort((a, b) => {
+    const sortedHistory = [...(matchHistory || [])].sort((a, b) => {
         const tA = a.created_at || a.timestamp || 0;
         const tB = b.created_at || b.timestamp || 0;
         return String(tA).localeCompare(String(tB));
     });
+
+    for (const match of sortedHistory) {
+        const winnerId = teamByName.get(match.winner) || match.winner_id || match.winnerId || match.winner;
+        const loserId = teamByName.get(match.loser) || match.loser_id || match.loserId || match.loser;
+        const domain = match.domain;
+
+        if (!winnerId || !loserId) continue;
+        if (domain) {
+            lastDomainByTeamId.set(winnerId, domain);
+            lastDomainByTeamId.set(loserId, domain);
+        }
+        lastOpponentByTeamId.set(winnerId, loserId);
+        lastOpponentByTeamId.set(loserId, winnerId);
+    }
+
+    // Count constraints are phase-scoped so Wager mode gets a fresh scorecard,
+    // while last-domain safety still uses the latest real match for each team.
+    const sorted = currentPhase
+        ? sortedHistory.filter(m => (m.phase || 'phase1') === currentPhase)
+        : sortedHistory;
 
     for (const match of sorted) {
         const winnerId = teamByName.get(match.winner) || match.winner_id || match.winnerId || match.winner;
@@ -29,23 +61,29 @@ export function buildConstraintsFromHistory(matchHistory, teams, currentPhase) {
 
         if (constraints[winnerId]) {
             constraints[winnerId].opponents[loserId] = (constraints[winnerId].opponents[loserId] || 0) + 1;
-            constraints[winnerId].domains[domain] = (constraints[winnerId].domains[domain] || 0) + 1;
-            constraints[winnerId].lastOpponent = loserId;
-            constraints[winnerId].lastDomain = domain;
-            
-            const comboKey = `${loserId}::${domain}`;
-            constraints[winnerId].combos[comboKey] = (constraints[winnerId].combos[comboKey] || 0) + 1;
+            if (domain) {
+                constraints[winnerId].domains[domain] = (constraints[winnerId].domains[domain] || 0) + 1;
+
+                const comboKey = `${loserId}::${domain}`;
+                constraints[winnerId].combos[comboKey] = (constraints[winnerId].combos[comboKey] || 0) + 1;
+            }
         }
         if (constraints[loserId]) {
             constraints[loserId].opponents[winnerId] = (constraints[loserId].opponents[winnerId] || 0) + 1;
-            constraints[loserId].domains[domain] = (constraints[loserId].domains[domain] || 0) + 1;
-            constraints[loserId].lastOpponent = winnerId;
-            constraints[loserId].lastDomain = domain;
+            if (domain) {
+                constraints[loserId].domains[domain] = (constraints[loserId].domains[domain] || 0) + 1;
 
-            const comboKey = `${winnerId}::${domain}`;
-            constraints[loserId].combos[comboKey] = (constraints[loserId].combos[comboKey] || 0) + 1;
+                const comboKey = `${winnerId}::${domain}`;
+                constraints[loserId].combos[comboKey] = (constraints[loserId].combos[comboKey] || 0) + 1;
+            }
         }
     }
+
+    teams.forEach((t) => {
+        if (!constraints[t.id]) return;
+        constraints[t.id].lastOpponent = lastOpponentByTeamId.get(t.id) || null;
+        constraints[t.id].lastDomain = lastDomainByTeamId.get(t.id) || null;
+    });
 
     return constraints;
 }
@@ -73,9 +111,20 @@ export function getQueueBlockReasons({ gameState, teamA, teamB, matchConstraints
         reasons.push('Already faced each other 2 times (max reached)');
     }
 
-    // BOTH PHASES: No consecutive repeat opponent
-    if (cA.lastOpponent === teamB.id || cB.lastOpponent === teamA.id) {
+    // Phase 1 specific: no consecutive repeat opponent
+    if (!isPhase2 && (cA.lastOpponent === teamB.id || cB.lastOpponent === teamA.id)) {
         reasons.push('Cannot face the same opponent in consecutive matches');
+    }
+
+    const validDomains = getValidDomains({
+        teamA,
+        teamB,
+        matchConstraints,
+        allDomains: gameState?.domains,
+        phase: gameState?.phase,
+    });
+    if (validDomains.length === 0) {
+        reasons.push('No valid domains available for this pair');
     }
 
     return reasons;
@@ -83,7 +132,7 @@ export function getQueueBlockReasons({ gameState, teamA, teamB, matchConstraints
 
 
 export function getValidDomains({ teamA, teamB, matchConstraints, allDomains, phase }) {
-    const domains = allDomains || ['Tech Pitch', 'Tech Quiz', 'Guess Output', 'Frontend Dev', 'Feature Addition'];
+    const domains = sanitizeConfiguredDomains(allDomains);
     const c = matchConstraints || {};
     const cA = c[teamA?.id] || {};
     const cB = c[teamB?.id] || {};

@@ -156,7 +156,7 @@ const LoginScreen = () => {
           {/* Footer Area */}
           <div className="px-8 py-6 border-t border-white/5 bg-[#190a09]">
             <p className="heist-mono text-[9px] text-gray-700 tracking-[0.4em] uppercase text-center opacity-70">
-              © 2024 ROYAL MINT INFRASTRUCTURE
+              © 2026 ROYAL MINT INFRASTRUCTURE
             </p>
           </div>
         </section>

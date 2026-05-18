@@ -4,7 +4,6 @@ import rvitmImg from '../assets/rvitm.png';
 import rishiImg from '../assets/rishi.png';
 import aneeshImg from '../assets/aneesh.png';
 import biswaImg from '../assets/biswa.png';
-import pratImg from '../assets/prat.png';
 import gdg from '../../assets/gdg.png';
 
 const offers = [
@@ -53,12 +52,6 @@ const organizers = [
         role: 'GDG Co-Organizer RVITM',
         photo: aneeshImg,
         linkedin: 'https://www.linkedin.com/in/aneesh-gupta-m-n-937792342/'
-    },
-    {
-        name: 'Pratyush Jaiswal',
-        role: 'GDG Co-Organizer RVITM',
-        photo: pratImg,
-        linkedin: 'https://www.linkedin.com/in/pratyush-jaiswal-ba0b6926a/'
     }
 ];
 
@@ -108,7 +101,7 @@ const AboutScreen = () => {
                     <div>
                         <div className="flex items-center gap-3 mb-4">
                             <div className="h-[2px] w-10 bg-emerald-400" />
-                            <span className="heist-mono text-[10px] tracking-[0.4em] uppercase text-emerald-300">ESTABLISHED 2024 // BENGALURU</span>
+                            <span className="heist-mono text-[10px] tracking-[0.4em] uppercase text-emerald-300">ESTABLISHED 2026 // BENGALURU</span>
                         </div>
                         <h1 className="heist-font text-5xl md:text-6xl tracking-widest leading-none">
                             GOOGLE DEVELOPER GROUPS

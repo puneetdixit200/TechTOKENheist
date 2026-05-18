@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect } from 'react';
+import { Suspense, lazy, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import { GameStateProvider, useGameState } from './hooks/useGameState';
 import { hasSupabaseConfig } from './lib/supabase';
@@ -9,6 +9,7 @@ import FinaleOverlay from './components/FinaleOverlay';
 import WagerModeOverlay from './components/WagerModeOverlay';
 
 import { buildReadyQueuePairs } from './utils/matchmaking';
+import { playElimination } from './utils/audio';
 import gdgLogo from '../assets/gdg.png';
 
 import './PlayerLayout.css';
@@ -39,6 +40,37 @@ const MissingSupabaseConfig = () => {
       </div>
     </div>
   );
+};
+
+const WagerEliminationAudioCue = () => {
+  const { user, myTeam, gameState } = useGameState();
+  const previousTeamIdRef = useRef(myTeam?.id || null);
+  const previousStatusRef = useRef(myTeam?.status || null);
+
+  useEffect(() => {
+    const teamId = myTeam?.id || null;
+    const status = myTeam?.status || null;
+
+    if (previousTeamIdRef.current !== teamId) {
+      previousTeamIdRef.current = teamId;
+      previousStatusRef.current = status;
+      return;
+    }
+
+    if (user?.role !== 'player') {
+      previousStatusRef.current = status;
+      return;
+    }
+
+    const becameEliminated = status === 'eliminated' && previousStatusRef.current !== 'eliminated';
+    if (gameState.phase === 'phase2' && becameEliminated) {
+      playElimination();
+    }
+
+    previousStatusRef.current = status;
+  }, [gameState.phase, myTeam?.id, myTeam?.status, user?.role]);
+
+  return null;
 };
 
 const PlayerTopBar = () => {
@@ -230,6 +262,7 @@ const AppContent = () => {
   return (
     <>
       <CountdownOverlay count={countdown} />
+      <WagerEliminationAudioCue />
       {user?.role !== 'admin' && <MatchStartOverlay />}
       <FinaleOverlay />
       {user?.role !== 'admin' && <WagerModeOverlay />}

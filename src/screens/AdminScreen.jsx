@@ -9,6 +9,7 @@ import {
 import DomainWheel from '../components/DomainWheel';
 import { buildQueueDiagnostics, buildTeamMatchmakingDiagnostics } from '../utils/matchmaking';
 import { buildIntelFeedLogs, buildTelemetryLogs } from '../utils/eventLogs';
+import { formatToIST } from '../utils/publicStateSnapshot';
 import { PROFILE_AVATARS, DEFAULT_PROFILE_NAME, getProfileAvatar, getProfileLabel } from '../data/profileAvatars';
 import './AdminScreen.css';
 
@@ -56,6 +57,10 @@ const ConnectionBadge = ({ team }) => {
     </span>
   );
 };
+
+const formatLeaderboardTimestamp = (value) => (
+  value ? formatToIST(value) : 'NO TOKEN EXCHANGE'
+);
 
 const AdminScreen = () => {
   const {
@@ -466,7 +471,7 @@ const AdminScreen = () => {
           className={`bg-heist-teal text-black px-6 py-2 heist-font text-xl flex items-center justify-center gap-2 hover:bg-white transition-colors w-full md:w-auto flex-shrink-0 ${actionInProgress ? 'opacity-50 cursor-wait' : ''}`}
           onClick={() => setConfirmConfig({
             title: gameState.phase === 'phase2' ? 'REVERT TO PHASE 1' : 'INITIATE WAGER MODE',
-            message: gameState.phase === 'phase2' ? 'Switch back to standard match mode?' : 'Switch to WAGER mode? This will reset match history and enable high-stakes eliminations.',
+            message: gameState.phase === 'phase2' ? 'Switch back to standard match mode?' : 'Switch to Wager Mode? This will rematch queued teams under high-stakes rules and enable eliminations.',
             type: 'warning',
             onConfirm: () => safeAction('togglePhase', togglePhase)
           })}
@@ -650,6 +655,8 @@ const AdminScreen = () => {
                   const isPendingForPair =
                     pendingDomainConfirm?.pair?.teamAId === pair.teamAId &&
                     pendingDomainConfirm?.pair?.teamBId === pair.teamBId;
+                  const pairTeamA = teams.find((team) => team.id === pair.teamAId);
+                  const pairTeamB = teams.find((team) => team.id === pair.teamBId);
                   const createActionName = `createMatch:${pair.teamAId}:${pair.teamBId}`;
 
                   return (
@@ -658,6 +665,17 @@ const AdminScreen = () => {
                         <span className="text-white">{pair.teamAName}</span>
                         <span className="text-heist-red">VS</span>
                         <span className="text-white">{pair.teamBName}</span>
+                      </div>
+                      <div className="grid grid-cols-[1fr_auto_1fr] gap-3 items-center mb-4">
+                        <div className="border border-gray-800 bg-[#080808] p-3 text-right">
+                          <div className="heist-mono text-[9px] text-gray-500 uppercase tracking-widest">Current Tokens</div>
+                          <div className="heist-font text-2xl text-heist-yellow">{pairTeamA?.tokens ?? 0} TKN</div>
+                        </div>
+                        <div className="heist-mono text-[10px] text-gray-600 uppercase tracking-widest">Stake Scan</div>
+                        <div className="border border-gray-800 bg-[#080808] p-3">
+                          <div className="heist-mono text-[9px] text-gray-500 uppercase tracking-widest">Current Tokens</div>
+                          <div className="heist-font text-2xl text-heist-yellow">{pairTeamB?.tokens ?? 0} TKN</div>
+                        </div>
                       </div>
                       <div className="flex justify-center border-t border-gray-800 pt-4">
                         <DomainWheel
@@ -952,6 +970,9 @@ const AdminScreen = () => {
                               </span>
                             )}
                           </div>
+                          <span className="heist-mono text-[9px] text-gray-500 uppercase tracking-widest mt-1">
+                            LAST TOKEN UPDATE: {formatLeaderboardTimestamp(t.lastTokenUpdateTime)}
+                          </span>
                         </div>
                       </div>
                       <div className="flex flex-col items-end">

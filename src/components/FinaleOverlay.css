@@ -191,11 +191,14 @@
 }
 
 .hologram-emblem-crimson {
+  --emblem-x: -50%;
   position: absolute;
   top: 40%;
   left: 20%;
   font-size: 280px;
   font-weight: 900;
+  line-height: 1;
+  font-family: 'Orbitron', sans-serif;
   color: rgba(255, 0, 60, 0.03);
   text-shadow: 0 0 50px rgba(255, 0, 60, 0.1);
   transform: translate(-50%, -50%) rotate(-12deg);
@@ -215,11 +218,14 @@
 }
 
 .hologram-emblem-blue {
+  --emblem-x: 50%;
   position: absolute;
   top: 40%;
   right: 20%;
   font-size: 240px;
   font-weight: 900;
+  line-height: 1;
+  font-family: 'Orbitron', sans-serif;
   color: rgba(0, 210, 255, 0.03);
   text-shadow: 0 0 50px rgba(0, 210, 255, 0.1);
   transform: translate(50%, -50%) rotate(12deg);
@@ -228,8 +234,8 @@
 }
 
 @keyframes emblemPulse {
-  0% { transform: translate(var(--tw-translate-x, 0), -50%) scale(0.95); opacity: 0.6; }
-  100% { transform: translate(var(--tw-translate-x, 0), -50%) scale(1.05); opacity: 1; }
+  0% { transform: translate(var(--emblem-x, 0), -50%) scale(0.95); opacity: 0.6; }
+  100% { transform: translate(var(--emblem-x, 0), -50%) scale(1.05); opacity: 1; }
 }
 
 /* ─── EMITTERS & PARTICLES ─── */
@@ -836,6 +842,75 @@
   10%, 90% { opacity: 1; transform: translateY(0); }
 }
 
+.finale-audio-player {
+  position: fixed;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  z-index: 130;
+  width: min(520px, calc(100vw - 32px));
+  min-height: 64px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+  align-items: center;
+  padding: 12px 14px;
+  border: 1px solid rgba(253, 216, 53, 0.42);
+  border-radius: 8px;
+  background: rgba(2, 2, 5, 0.94);
+  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.72), 0 0 22px rgba(253, 216, 53, 0.12);
+  backdrop-filter: blur(14px);
+}
+
+.finale-audio-title {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.finale-audio-title span {
+  font-size: 9px;
+  color: rgba(253, 216, 53, 0.8);
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.finale-audio-title strong {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.88);
+  letter-spacing: 0;
+  text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.finale-audio-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.finale-audio-controls button {
+  min-width: 82px;
+  border: 1px solid rgba(253, 216, 53, 0.4);
+  border-radius: 6px;
+  color: #fdd835;
+  background: rgba(253, 216, 53, 0.06);
+  padding: 9px 10px;
+  font-size: 10px;
+  letter-spacing: 0;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.finale-audio-controls button:hover {
+  background: #fdd835;
+  color: #050505;
+  transform: translateY(-1px);
+}
+
 /* ─── VICTORY CELEBRATION SCREEN ─── */
 .finale-victory-overlay {
   position: fixed;
@@ -1039,6 +1114,8 @@
   .showdown-vs-badge { width: 60px; height: 60px; border-width: 2px; }
   .vs-badge-text { font-size: 22px; }
   .showdown-hud-deck { padding: 20px 25px 0 25px; }
+  .finale-audio-player { grid-template-columns: 1fr; bottom: 14px; gap: 10px; }
+  .finale-audio-controls button { flex: 1; }
   .hud-middle-deck { flex-direction: column; gap: 20px; align-items: stretch; }
   .victory-winner-name { font-size: 46px; }
   .victory-score { font-size: 40px; }
@@ -1391,6 +1468,73 @@
   animation: cardPulseEntry 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
+.victory-championship-panel {
+  width: min(760px, calc(100vw - 48px));
+  padding: clamp(24px, 5vh, 48px) clamp(24px, 5vw, 64px);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(253, 216, 53, 0.16), transparent 22%),
+    linear-gradient(315deg, rgba(255, 0, 60, 0.12), transparent 30%),
+    rgba(3, 3, 8, 0.92);
+  border: 1px solid rgba(253, 216, 53, 0.65);
+  box-shadow:
+    0 28px 90px rgba(0, 0, 0, 0.92),
+    0 0 42px rgba(253, 216, 53, 0.22),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.victory-championship-panel::before,
+.victory-championship-panel::after {
+  content: '';
+  position: absolute;
+  left: 28px;
+  right: 28px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(253, 216, 53, 0.75), transparent);
+  pointer-events: none;
+}
+
+.victory-championship-panel::before {
+  top: 18px;
+}
+
+.victory-championship-panel::after {
+  bottom: 18px;
+}
+
+.victory-championship-panel .victory-title-glitch {
+  font-size: clamp(22px, 3vw, 36px);
+  letter-spacing: 0;
+  line-height: 1.05;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.victory-championship-panel .victory-winner-name-glow {
+  font-size: clamp(42px, 8vw, 88px);
+  letter-spacing: 0;
+  line-height: 0.95;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.victory-crown-badge {
+  display: grid;
+  place-items: center;
+  gap: 10px;
+}
+
+.victory-crown-code {
+  color: rgba(253, 216, 53, 0.78);
+  font-size: 10px;
+  letter-spacing: 0;
+  border: 1px solid rgba(253, 216, 53, 0.35);
+  padding: 5px 10px;
+  background: rgba(0, 0, 0, 0.45);
+}
+
 @keyframes cardPulseEntry {
   0% { transform: scale(0.7) translateY(50px); opacity: 0; }
   100% { transform: scale(1) translateY(0); opacity: 1; }
@@ -1691,4 +1835,4 @@
   transform: scale(1.08) rotate(3deg);
   border-color: #ffffff;
   box-shadow: 0 0 35px rgba(255, 255, 255, 0.9), 0 0 70px rgba(253, 216, 53, 0.6);
-}
+}

@@ -413,11 +413,12 @@ const VictoryScreen = ({ winnerName, scoreA, scoreB, teamAName, teamBName, audio
       </div>
 
       {/* CHAMPIONSHIP HUD INTERFACE */}
-      <div className="victory-content-card">
+      <div className="victory-content-card victory-championship-panel">
         <div className="victory-card-glow-back" />
         
-        <div className="victory-crown-emblem">
+        <div className="victory-crown-emblem victory-crown-badge">
           <img src={DANCE_GIF_SRC} className="victory-dance-gif" alt="Winner Celebration" />
+          <div className="victory-crown-code heist-mono">CHAMPION LOCKED</div>
         </div>
         
         <div className="victory-title-wrapper">
@@ -556,6 +557,63 @@ const FinaleRoundTimer = ({ startTime, className = '' }) => {
 
   if (!startTime) return null;
   return <span className={`showdown-timer-val ${className}`}>{display}</span>;
+};
+
+const restartAudioElement = (audio) => {
+  if (!audio) return Promise.resolve();
+  audio.currentTime = 0;
+  return audio.play();
+};
+
+const FinaleAudioPlayer = ({ audioRef, songTitle }) => {
+  const [isSongPlaying, setIsSongPlaying] = useState(true);
+
+  useEffect(() => {
+    const audio = audioRef?.current;
+    if (!audio) return undefined;
+
+    const syncPlayback = () => setIsSongPlaying(!audio.paused);
+    audio.addEventListener('play', syncPlayback);
+    audio.addEventListener('pause', syncPlayback);
+    syncPlayback();
+
+    return () => {
+      audio.removeEventListener('play', syncPlayback);
+      audio.removeEventListener('pause', syncPlayback);
+    };
+  }, [audioRef, songTitle]);
+
+  const togglePlay = () => {
+    const audio = audioRef?.current;
+    if (!audio) return;
+    if (audio.paused) {
+      audio.play()
+        .then(() => setIsSongPlaying(true))
+        .catch(err => console.log("Finale audio play blocked:", err));
+    } else {
+      audio.pause();
+      setIsSongPlaying(false);
+    }
+  };
+
+  const resetPlay = () => {
+    restartAudioElement(audioRef?.current)
+      .then(() => setIsSongPlaying(true))
+      .catch(err => console.log("Finale audio restart blocked:", err));
+  };
+
+  return (
+    <div className="finale-audio-player heist-mono">
+      <div className="finale-audio-title">
+        <span>FINALE AUDIO</span>
+        <strong>{songTitle}</strong>
+      </div>
+      <div className="finale-audio-controls">
+        <button type="button" onClick={togglePlay}>{isSongPlaying ? 'PAUSE' : 'PLAY'}</button>
+        <button type="button" onClick={resetPlay}>RESTART</button>
+      </div>
+    </div>
+  );
 };
 
 /* ─── Main Finale Overlay ─── */
@@ -792,7 +850,7 @@ const FinaleOverlay = () => {
             {/* LEFT SPLIT SCREEN: CRIMSON RED (HELSINKI) */}
             <section className="battlefield-side side-left-crimson">
               <div className="grid-overlay" />
-              <div className="hologram-emblem-crimson">★</div>
+              <div className="hologram-emblem-crimson">A</div>
               
               {/* Embers and Smoke Emitter */}
               <div className="ambient-ember-emitter">
@@ -833,7 +891,7 @@ const FinaleOverlay = () => {
             {/* RIGHT SPLIT SCREEN: ELECTRIC BLUE (RIO) */}
             <section className="battlefield-side side-right-neon">
               <div className="grid-overlay" />
-              <div className="hologram-emblem-blue">🐺</div>
+              <div className="hologram-emblem-blue">B</div>
 
               {/* Cold Electric Smoke and Sparks Emitter */}
               <div className="ambient-spark-emitter">
@@ -916,6 +974,7 @@ const FinaleOverlay = () => {
             </div>
           </footer>
 
+          <FinaleAudioPlayer audioRef={audioRef} songTitle={songTitle} />
         </div>
       )}
     </>

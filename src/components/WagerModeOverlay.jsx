@@ -473,7 +473,7 @@ const WagerModeOverlay = () => {
         };
       case 3:
         return {
-          title: "INITIATING WAGOR MODE",
+          title: "INITIATING WAGER MODE",
           subtitle: "REDISTRIBUTING TOKEN RESERVES // PREPARING VAULT CHAMBERS",
           class: "step-3 grid-shockwave",
           action: "COMPILING"
@@ -487,14 +487,14 @@ const WagerModeOverlay = () => {
         };
       case 1:
         return {
-          title: "WELCOME TO WAGOR MODE",
+          title: "WELCOME TO WAGER MODE",
           subtitle: "THE CHAOS COMMENCES // BRACE YOURSELVES OPERATIVES",
           class: "step-1 intense-silence",
           action: "LOCKED"
         };
       case 0:
         return {
-          title: "WAGOR MODE ACTIVE",
+          title: "WAGER MODE ACTIVE",
           subtitle: "SURVIVE THE CHAOS // WINNER TAKES ALL // HIGH STAKES VAULT",
           class: "step-0 maximum-glitch",
           action: "EXECUTE"
@@ -565,7 +565,7 @@ const WagerModeOverlay = () => {
           <div className="player-widget-brand heist-mono">
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexGrow: 1 }}>
               <div className="glowing-red-dot animate-pulse" />
-              <span>WAGOR AMBIENT</span>
+              <span>WAGER AMBIENT</span>
             </div>
             <button 
               className="player-collapse-btn" 

@@ -2,6 +2,11 @@ import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useGameState } from '../hooks/useGameState';
 import { Users, Trophy, Activity, Bell, Clock3, AlertCircle } from 'lucide-react';
+import { formatToIST } from '../utils/publicStateSnapshot';
+
+const formatLeaderboardTimestamp = (value) => (
+  value ? formatToIST(value) : 'NO TOKEN EXCHANGE'
+);
 
 const LobbyScreen = () => {
   const { teams, myTeam, gameState, matchHistory, notifications, sortedLeaderboard } = useGameState();
@@ -117,6 +122,9 @@ const LobbyScreen = () => {
                           </span>
                         )}
                       </div>
+                      <span className="heist-mono text-[8px] uppercase tracking-[0.2em] text-gray-600 mt-1">
+                        LAST TOKEN: {formatLeaderboardTimestamp(team.lastTokenUpdateTime)}
+                      </span>
                     </div>
                   </div>
                   <div className="flex flex-col items-end shrink-0">

@@ -9,7 +9,7 @@ import {
 } from "../_shared/matchmaking.ts";
 
 import * as jose from "https://deno.land/x/jose@v4.14.4/index.ts";
-const JWT_SECRET = new TextEncoder().encode(Deno.env.get('JWT_SECRET') || 'tokenheist-super-secret-jwt-key-2024');
+const JWT_SECRET = new TextEncoder().encode(Deno.env.get('JWT_SECRET') || 'tokenheist-super-secret-jwt-key-2026');
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -249,6 +249,7 @@ const enrollAllEligibleTeams = async () => {
 
     const toEnroll = (allTeams || []).filter((t) =>
         t.status !== 'eliminated' && t.status !== 'timeout' && t.status !== 'fighting' &&
+        (t.tokens ?? 0) > 0 &&
         !inQueue.has(t.id) && !inMatch.has(t.id)
     );
 
@@ -308,7 +309,7 @@ const matchQueuedTeams = async ({
 
     const waitingTeams = teams.filter((t) => eligibleIds.includes(t.id));
     const pairs = runMatchmaking({
-        gameState: { phase: system?.phase || 'phase1' },
+        gameState: { phase: system?.phase || 'phase1', domains: system?.domains || DEFAULT_DOMAINS },
         teams: waitingTeams,
         matchConstraints: constraints,
         existingMatches: matchRows,
@@ -667,7 +668,6 @@ serve(async (req) => {
 
                 if (newPhase === 'phase2') {
                     await insertNotification('Wager Mode activated.');
-                    await supabaseAdmin.from('match_history').delete().neq('id', '00000000-0000-0000-0000-000000000000');
                     await enforceWagerEliminations();
                     await enrollAllEligibleTeams();
                     await supabaseAdmin
@@ -1044,6 +1044,7 @@ serve(async (req) => {
                     teamB,
                     matchConstraints: constraints,
                     allDomains,
+                    phase: system?.phase || 'phase1',
                 });
 
                 let domain = preferredDomain;

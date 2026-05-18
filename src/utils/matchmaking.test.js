@@ -133,7 +133,7 @@ test('phase 2 queued matchmaking excludes active matches and uses largest token 
   ])
 })
 
-test('phase 2 still enforces opponent and domain allocation safety', () => {
+test('standard mode enforces opponent and domain allocation safety', () => {
   const teams = [
     { id: 'alpha', name: 'Alpha', tokens: 1, status: 'idle' },
     { id: 'bravo', name: 'Bravo', tokens: 10, status: 'idle' },
@@ -156,18 +156,19 @@ test('phase 2 still enforces opponent and domain allocation safety', () => {
     },
   }
 
-  const gameState = { phase: 'phase2', domains: ['Tech Pitch', 'Tech Quiz'] }
+  const gameState = { phase: 'phase1', domains: ['Tech Pitch', 'Tech Quiz'] }
 
   assert.deepEqual(
     getQueueBlockReasons({ gameState, teamA: teams[0], teamB: teams[1], matchConstraints }),
     [
+      'Token gap too high: 1 vs 10 (diff 9, max 3)',
       'Already faced each other 2 times (max reached)',
       'Cannot face the same opponent in consecutive matches',
       'No valid domains available for this pair',
     ]
   )
   assert.deepEqual(
-    getValidDomains({ teamA: teams[0], teamB: teams[1], matchConstraints, allDomains: gameState.domains, phase: 'phase2' }),
+    getValidDomains({ teamA: teams[0], teamB: teams[1], matchConstraints, allDomains: gameState.domains, phase: 'phase1' }),
     []
   )
   assert.deepEqual(
@@ -176,7 +177,43 @@ test('phase 2 still enforces opponent and domain allocation safety', () => {
   )
 })
 
-test('phase 2 blocks a pair when every safe configured domain repeats consecutively', () => {
+test('wager mode ignores standard opponent and allocation limits but blocks consecutive domain repeats', () => {
+  const teams = [
+    { id: 'alpha', name: 'Alpha', tokens: 1, status: 'idle' },
+    { id: 'bravo', name: 'Bravo', tokens: 10, status: 'idle' },
+  ]
+  const matchConstraints = {
+    alpha: {
+      opponents: { bravo: 2 },
+      domains: { 'Tech Quiz': 2 },
+      combos: { 'bravo::Tech Quiz': 1 },
+      lastOpponent: 'bravo',
+      lastDomain: 'Tech Pitch',
+    },
+    bravo: {
+      opponents: { alpha: 2 },
+      domains: { 'Tech Quiz': 2 },
+      combos: { 'alpha::Tech Quiz': 1 },
+      lastOpponent: 'alpha',
+      lastDomain: 'Tech Pitch',
+    },
+  }
+  const gameState = { phase: 'phase2', domains: ['Tech Pitch', 'Tech Quiz'] }
+
+  assert.deepEqual(
+    getQueueBlockReasons({ gameState, teamA: teams[0], teamB: teams[1], matchConstraints }),
+    []
+  )
+  assert.deepEqual(
+    getValidDomains({ teamA: teams[0], teamB: teams[1], matchConstraints, allDomains: gameState.domains, phase: 'phase2' }),
+    ['Tech Quiz']
+  )
+  assert.deepEqual(runMatchmaking({ gameState, teams, matchConstraints, existingMatches: [] }), [
+    { teamAId: 'alpha', teamAName: 'Alpha', teamBId: 'bravo', teamBName: 'Bravo' },
+  ])
+})
+
+test('wager mode blocks a pair when every configured domain repeats consecutively', () => {
   const teams = [
     { id: 'alpha', name: 'Alpha', tokens: 1, status: 'idle' },
     { id: 'bravo', name: 'Bravo', tokens: 10, status: 'idle' },

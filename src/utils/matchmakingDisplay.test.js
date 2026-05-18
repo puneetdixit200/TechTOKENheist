@@ -48,6 +48,10 @@ test('admin confirms wheel-selected domain before creating a match', () => {
   const adminScreen = readProjectFile('src/screens/AdminScreen.jsx')
 
   assert.match(adminScreen, /pendingDomainConfirm/)
+  assert.match(adminScreen, /const pairTeamA = teams\.find\(\(team\) => team\.id === pair\.teamAId\)/)
+  assert.match(adminScreen, /const pairTeamB = teams\.find\(\(team\) => team\.id === pair\.teamBId\)/)
+  assert.match(adminScreen, /pairTeamA\?\.tokens \?\? 0/)
+  assert.match(adminScreen, /pairTeamB\?\.tokens \?\? 0/)
   assert.match(adminScreen, /const handleQueueDomainSpin = \(pair, domain\) =>/)
   assert.match(adminScreen, /setPendingDomainConfirm\(\{\s*pair,\s*domain\s*\}\)/)
   assert.match(adminScreen, /value=\{pendingDomainConfirm\.domain\}/)
@@ -93,4 +97,25 @@ test('admin logs split global intel feed from match telemetry history', () => {
   assert.match(adminScreen, /buildIntelFeedLogs/)
   assert.match(adminScreen, /buildTelemetryLogs/)
   assert.doesNotMatch(adminScreen, /const telemetryLogs = useMemo\(\(\) => \{\s*return \[\.\.\.notifications\]\.reverse\(\)/)
+})
+
+test('leaderboards display token update timestamps', () => {
+  const adminScreen = readProjectFile('src/screens/AdminScreen.jsx')
+  const lobbyScreen = readProjectFile('src/screens/LobbyScreen.jsx')
+
+  assert.match(adminScreen, /formatLeaderboardTimestamp\(t\.lastTokenUpdateTime\)/)
+  assert.match(adminScreen, /LAST TOKEN UPDATE/)
+  assert.match(lobbyScreen, /formatLeaderboardTimestamp\(team\.lastTokenUpdateTime\)/)
+  assert.match(lobbyScreen, /LAST TOKEN/)
+})
+
+test('finale screen avoids emoji glyph alignment and exposes music controls before victory', () => {
+  const finaleOverlay = readProjectFile('src/components/FinaleOverlay.jsx')
+  const finaleCss = readProjectFile('src/components/FinaleOverlay.css')
+
+  assert.match(finaleOverlay, /const FinaleAudioPlayer = \(/)
+  assert.match(finaleOverlay, /<FinaleAudioPlayer/)
+  assert.doesNotMatch(finaleOverlay, /🐺/)
+  assert.match(finaleCss, /\.finale-audio-player/)
+  assert.match(finaleCss, /\.victory-championship-panel/)
 })

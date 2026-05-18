@@ -46,9 +46,20 @@ test('edge automatching passes current phase into largest-difference wager scori
   const matchQueuedBlock = getCaseBlock(edgeFunction, 'const matchQueuedTeams = async', 'const autoMatchPairs = async')
 
   assert.match(matchQueuedBlock, /const system = await getGameSystem\(\)/)
-  assert.match(matchQueuedBlock, /gameState:\s*\{\s*phase:\s*system\?\.phase \|\| 'phase1'\s*\}/)
+  assert.match(matchQueuedBlock, /gameState:\s*\{\s*phase:\s*system\?\.phase \|\| 'phase1',\s*domains:\s*system\?\.domains \|\| DEFAULT_DOMAINS\s*\}/)
   assert.match(sharedMatchmaking, /function scorePhase2\(teamA, teamB\)[\s\S]*return -Math\.abs\(\(teamA\.tokens \|\| 0\) - \(teamB\.tokens \|\| 0\)\)/)
   assert.match(sharedMatchmaking, /isPhase2[\s\S]{0,160}\? scorePhase2\(eligible\[i\], eligible\[j\]\)/)
+})
+
+test('edge wager matchmaking applies only consecutive-domain safety from match history', () => {
+  const sharedMatchmaking = readProjectFile('supabase/functions/_shared/matchmaking.ts')
+
+  assert.match(sharedMatchmaking, /const isPhase2 = gameState\?\.phase === 'phase2'/)
+  assert.match(sharedMatchmaking, /if \(!isPhase2 && \(cA\.opponents\?\.\[teamB\.id\] \|\| 0\) >= 2\)/)
+  assert.doesNotMatch(sharedMatchmaking, /BOTH PHASES: No consecutive repeat opponent/)
+  assert.match(sharedMatchmaking, /if \(!isPhase2\) \{[\s\S]*cA\.combos\?\.\[comboKeyA\][\s\S]*\}/)
+  assert.match(sharedMatchmaking, /if \(cA\.lastDomain === domain\) return false/)
+  assert.match(sharedMatchmaking, /lastDomainByTeamId/)
 })
 
 test('wager automatching keeps teams queued until admin confirms a spun domain', () => {
