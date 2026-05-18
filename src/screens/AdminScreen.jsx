@@ -663,8 +663,8 @@ const AdminScreen = () => {
                     <div key={i} className="border border-heist-yellow bg-black bg-opacity-80 p-4">
                       <div className="heist-font text-2xl text-center mb-4 flex flex-wrap items-center justify-center gap-4 border-b border-gray-800 pb-4">
                         <span className="inline-flex items-baseline gap-2 text-white">
-                          {pair.teamAName}
                           <span className="heist-font text-sm text-heist-yellow tracking-widest">{pairTeamA?.tokens ?? 0} TKN</span>
+                          {pair.teamAName}
                         </span>
                         <span className="text-heist-red">VS</span>
                         <span className="inline-flex items-baseline gap-2 text-white">
