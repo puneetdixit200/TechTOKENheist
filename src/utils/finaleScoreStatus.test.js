@@ -3,8 +3,32 @@ import test from 'node:test'
 
 import { buildFinaleScoreStatus } from './finaleScoreStatus.js'
 
-test('finale status uses dead-even card for tied scores and match point scores', () => {
-  for (const [winsA, winsB] of [[0, 0], [1, 1], [2, 2], [2, 1], [1, 2], [2, 0], [0, 2]]) {
+test('finale status keeps pre-match scoreless copy away from match-point wording', () => {
+  assert.deepEqual(
+    buildFinaleScoreStatus({ winsA: 0, winsB: 0, teamAName: 'Berlin', teamBName: 'Alicia' }),
+    {
+      cardClass: 'gap-even',
+      header: 'OPENING STANDOFF',
+      title: 'SCORELESS',
+      description: 'The first round sets the pace.',
+    },
+  )
+})
+
+test('finale status uses deadlock copy for tied scores before match point', () => {
+  assert.deepEqual(
+    buildFinaleScoreStatus({ winsA: 1, winsB: 1, teamAName: 'Berlin', teamBName: 'Alicia' }),
+    {
+      cardClass: 'gap-even',
+      header: 'DEAD EVEN',
+      title: 'DEAD EVEN',
+      description: 'The next round breaks the deadlock.',
+    },
+  )
+})
+
+test('finale status uses dead-even fate copy for match point scores', () => {
+  for (const [winsA, winsB] of [[2, 2], [2, 1], [1, 2], [2, 0], [0, 2]]) {
     assert.deepEqual(
       buildFinaleScoreStatus({ winsA, winsB, teamAName: 'Berlin', teamBName: 'Alicia' }),
       {

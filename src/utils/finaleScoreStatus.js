@@ -1,4 +1,18 @@
-const DEAD_EVEN_STATUS = {
+const OPENING_STATUS = {
+  cardClass: 'gap-even',
+  header: 'OPENING STANDOFF',
+  title: 'SCORELESS',
+  description: 'The first round sets the pace.',
+}
+
+const DEADLOCK_STATUS = {
+  cardClass: 'gap-even',
+  header: 'DEAD EVEN',
+  title: 'DEAD EVEN',
+  description: 'The next round breaks the deadlock.',
+}
+
+const MATCH_POINT_STATUS = {
   cardClass: 'gap-even',
   header: 'DEAD EVEN',
   title: 'DEAD EVEN',
@@ -18,8 +32,12 @@ export const buildFinaleScoreStatus = ({
   const diff = resolvedWinsA - resolvedWinsB
   const isMatchPoint = Math.max(resolvedWinsA, resolvedWinsB) >= 2
 
-  if (diff === 0 || isMatchPoint) {
-    return DEAD_EVEN_STATUS
+  if (isMatchPoint) {
+    return MATCH_POINT_STATUS
+  }
+
+  if (diff === 0) {
+    return resolvedWinsA === 0 ? OPENING_STATUS : DEADLOCK_STATUS
   }
 
   const userIsTeamA = userTeamName === teamAName
