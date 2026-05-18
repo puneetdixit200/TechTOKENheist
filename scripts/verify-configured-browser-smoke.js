@@ -375,7 +375,7 @@ const routeChecks = [
     name: 'startup-countdown-configured',
     route: '/about',
     viewport: { width: 1366, height: 768 },
-    text: 'LIMITLESS COUNTDOWN',
+    text: 'TECHTOKEN HEIST',
     systemMode: 'starting',
     storageValue: createPersistedAuth({
       role: 'player',
