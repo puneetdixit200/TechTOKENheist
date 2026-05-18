@@ -661,23 +661,18 @@ const AdminScreen = () => {
 
                   return (
                     <div key={i} className="border border-heist-yellow bg-black bg-opacity-80 p-4">
-                      <div className="heist-font text-2xl text-center mb-4 flex items-center justify-center gap-4">
-                        <span className="text-white">{pair.teamAName}</span>
+                      <div className="heist-font text-2xl text-center mb-4 flex flex-wrap items-center justify-center gap-4 border-b border-gray-800 pb-4">
+                        <span className="inline-flex items-baseline gap-2 text-white">
+                          {pair.teamAName}
+                          <span className="heist-font text-sm text-heist-yellow tracking-widest">{pairTeamA?.tokens ?? 0} TKN</span>
+                        </span>
                         <span className="text-heist-red">VS</span>
-                        <span className="text-white">{pair.teamBName}</span>
+                        <span className="inline-flex items-baseline gap-2 text-white">
+                          {pair.teamBName}
+                          <span className="heist-font text-sm text-heist-yellow tracking-widest">{pairTeamB?.tokens ?? 0} TKN</span>
+                        </span>
                       </div>
-                      <div className="grid grid-cols-[1fr_auto_1fr] gap-3 items-center mb-4">
-                        <div className="border border-gray-800 bg-[#080808] p-3 text-right">
-                          <div className="heist-mono text-[9px] text-gray-500 uppercase tracking-widest">Current Tokens</div>
-                          <div className="heist-font text-2xl text-heist-yellow">{pairTeamA?.tokens ?? 0} TKN</div>
-                        </div>
-                        <div className="heist-mono text-[10px] text-gray-600 uppercase tracking-widest">Stake Scan</div>
-                        <div className="border border-gray-800 bg-[#080808] p-3">
-                          <div className="heist-mono text-[9px] text-gray-500 uppercase tracking-widest">Current Tokens</div>
-                          <div className="heist-font text-2xl text-heist-yellow">{pairTeamB?.tokens ?? 0} TKN</div>
-                        </div>
-                      </div>
-                      <div className="flex justify-center border-t border-gray-800 pt-4">
+                      <div className="flex justify-center">
                         <DomainWheel
                           domains={domains}
                           disabled={Boolean(pendingDomainConfirm) || actionInProgress === createActionName}
