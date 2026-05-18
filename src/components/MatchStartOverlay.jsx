@@ -3,17 +3,35 @@ import { useGameState } from '../hooks/useGameState';
 import './MatchStartOverlay.css';
 
 const START_DURATION_MS = 10_000;
-const EXIT_DURATION_MS = 700;
-const loadingVideoModules = import.meta.glob('../../assets/techtoken-loading.{mp4,webm}', {
+const EXIT_DURATION_MS = 1_400;
+const loadingVideoModules = import.meta.glob([
+  '../../assets/**/*.{mp4,webm,mov,m4v}',
+  '../../*.{mp4,webm,mov,m4v}',
+], {
   eager: true,
   import: 'default',
 });
-const LOADING_VIDEO_SOURCES = Object.entries(loadingVideoModules)
+
+const VIDEO_NAME_PATTERN = /(tech[-_\s]*token|techtoken|loading|loader|countdown|heist)/i;
+const loadingVideoEntries = Object.entries(loadingVideoModules);
+const preferredVideoEntries = loadingVideoEntries.filter(([path]) => VIDEO_NAME_PATTERN.test(path));
+const getVideoPriority = (path) => {
+  const lowerPath = path.toLowerCase();
+  let priority = 0;
+  if (lowerPath.includes('techtoken') || lowerPath.includes('tech-token') || lowerPath.includes('tech_token')) priority += 6;
+  if (lowerPath.includes('loading') || lowerPath.includes('loader')) priority += 5;
+  if (lowerPath.includes('countdown')) priority += 3;
+  if (lowerPath.endsWith('.mp4')) priority += 2;
+  if (lowerPath.endsWith('.webm')) priority += 1;
+  return priority;
+};
+const getVideoType = (path) => (path.endsWith('.webm') ? 'video/webm' : 'video/mp4');
+const LOADING_VIDEO_SOURCES = (preferredVideoEntries.length > 0 ? preferredVideoEntries : loadingVideoEntries)
+  .sort(([pathA], [pathB]) => getVideoPriority(pathB) - getVideoPriority(pathA))
   .map(([path, src]) => ({
     src,
-    type: path.endsWith('.webm') ? 'video/webm' : 'video/mp4',
-  }))
-  .sort((a, b) => (a.type === 'video/mp4' ? -1 : 1) - (b.type === 'video/mp4' ? -1 : 1));
+    type: getVideoType(path),
+  }));
 
 const toMillis = (value) => {
   if (!value) return null;
@@ -34,17 +52,47 @@ const MatchStartOverlay = () => {
   const { gameState } = useGameState();
   const [active, setActive] = useState(false);
   const [timer, setTimer] = useState(10);
+  const [phase, setPhase] = useState(0);
+  const [isTearing, setIsTearing] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
+  const [showAnnouncement, setShowAnnouncement] = useState(true);
+  const [showSubtitles, setShowSubtitles] = useState(false);
+  const [flashActive, setFlashActive] = useState(false);
+  const [timerPulse, setTimerPulse] = useState(false);
+  const audioRef = useRef(null);
   const timerRef = useRef(null);
   const activeRef = useRef(false);
+  const audioPlayedRef = useRef(false);
+  const flashPlayedRef = useRef(false);
+  const timerPulseRef = useRef(false);
+  const pendingTimeoutsRef = useRef([]);
   const countdownKeyRef = useRef(null);
   const videoSource = LOADING_VIDEO_SOURCES[0] || null;
+
+  const clearPendingTimeouts = () => {
+    pendingTimeoutsRef.current.forEach((id) => clearTimeout(id));
+    pendingTimeoutsRef.current = [];
+  };
+
+  const scheduleTimeout = (callback, delay) => {
+    const id = setTimeout(callback, delay);
+    pendingTimeoutsRef.current.push(id);
+  };
 
   const resetOverlay = () => {
     activeRef.current = false;
     setActive(false);
     setIsFinished(false);
+    setIsTearing(false);
+    setShowAnnouncement(true);
+    setShowSubtitles(false);
+    setFlashActive(false);
+    setTimerPulse(false);
+    setPhase(0);
     setTimer(10);
+    audioPlayedRef.current = false;
+    flashPlayedRef.current = false;
+    timerPulseRef.current = false;
   };
 
   useEffect(() => {
@@ -65,24 +113,69 @@ const MatchStartOverlay = () => {
     if (countdownKeyRef.current === countdownKey) return;
 
     if (timerRef.current) cancelAnimationFrame(timerRef.current);
+    clearPendingTimeouts();
 
     countdownKeyRef.current = countdownKey;
     activeRef.current = true;
+    audioPlayedRef.current = false;
+    flashPlayedRef.current = false;
+    timerPulseRef.current = false;
     setActive(true);
     setIsFinished(false);
+    setIsTearing(false);
+    setShowAnnouncement(true);
+    setShowSubtitles(false);
+    setFlashActive(false);
+    setTimerPulse(false);
+    setPhase(0);
 
     const tick = () => {
       const now = Date.now();
+      const elapsedMs = Math.max(0, now - countdownStartedAt);
       const remainingMs = Math.max(0, targetTime - now);
+      const progress = Math.min(1, elapsedMs / Math.max(1, countdownDurationMs));
 
       setTimer(Math.max(0, remainingMs / 1000));
+      setShowAnnouncement(progress < 0.42);
+      setShowSubtitles(progress >= 0.36);
 
-      if (remainingMs <= 0 && now - targetTime >= EXIT_DURATION_MS) {
-        activeRef.current = false;
-        setIsFinished(true);
-        setActive(false);
-        cancelAnimationFrame(timerRef.current);
-        return;
+      if (progress >= 0.38 && !audioPlayedRef.current) {
+        audioPlayedRef.current = true;
+        audioRef.current?.play().catch((error) => console.log('Audio play blocked', error));
+      }
+
+      if (progress >= 0.42 && !flashPlayedRef.current) {
+        flashPlayedRef.current = true;
+        setFlashActive(true);
+        scheduleTimeout(() => setFlashActive(false), 700);
+      }
+
+      if (progress >= 0.72 && !timerPulseRef.current) {
+        timerPulseRef.current = true;
+        setTimerPulse(true);
+      }
+
+      if (progress >= 0.72) {
+        setPhase(2);
+      } else if (progress >= 0.42) {
+        setPhase(1);
+      } else {
+        setPhase(0);
+      }
+
+      if (remainingMs <= 0) {
+        setIsTearing(true);
+        setTimer(0);
+
+        if (now - targetTime >= EXIT_DURATION_MS) {
+          activeRef.current = false;
+          setIsFinished(true);
+          setActive(false);
+          setShowSubtitles(false);
+          setShowAnnouncement(false);
+          cancelAnimationFrame(timerRef.current);
+          return;
+        }
       }
 
       timerRef.current = requestAnimationFrame(tick);
@@ -93,12 +186,16 @@ const MatchStartOverlay = () => {
 
   useEffect(() => () => {
     if (timerRef.current) cancelAnimationFrame(timerRef.current);
+    clearPendingTimeouts();
   }, []);
 
   if (!active || isFinished) return null;
 
   return (
-    <div className="match-start-overlay">
+    <div className={`match-start-overlay infinite-void ${videoSource ? 'has-loading-video' : 'has-image-fallback'} ${isTearing ? 'tearing' : ''} ${phase === 2 ? 'void-mode' : ''} ${timerPulse ? 'pulse-timer' : ''}`}>
+      <audio ref={audioRef} src={new URL('../../assets/anant.mp3', import.meta.url).href} />
+
+      <div className="background-container" aria-hidden="true" />
       {videoSource && (
         <video
           className="loading-video-bg"
@@ -112,11 +209,48 @@ const MatchStartOverlay = () => {
           <source src={videoSource.src} type={videoSource.type} />
         </video>
       )}
+      <div className="overlay" />
+      <div className={`flash-screen ${flashActive ? 'flash-animation' : ''}`} />
+      <div className="void-aura aura-left" />
+      <div className="void-aura aura-right" />
+      <div className="infinite-void-ring ring-one" />
+      <div className="infinite-void-ring ring-two" />
+      <div className="infinite-void-ring ring-three" />
 
-      <div className="void-countdown-shell">
-        <div className="loading-kicker">TECHTOKEN HEIST</div>
-        <div className="timer-value">{Math.ceil(timer)}</div>
-        <div className="timer-caption">MATCH STARTS IN</div>
+      <div className="tear-wrapper">
+        <div className="tear-part tear-left" />
+        <div className="tear-part tear-right" />
+
+        <div className="content-container void-countdown-shell">
+          <div className={`announcement ${showAnnouncement ? 'visible' : ''}`}>
+            LIMITLESS COUNTDOWN
+          </div>
+
+          <div className="void-eye-mark" aria-hidden="true">
+            <span />
+            <span />
+          </div>
+
+          <div className="timer-container">
+            <div className={`timer-value ${phase >= 1 ? 'glitch' : ''}`}>{Math.ceil(timer)}</div>
+            <div className="timer-caption">SECONDS UNTIL BREACH</div>
+          </div>
+
+          <div className={`subtitles ${showSubtitles ? 'visible' : ''}`}>
+            {phase === 1 && (
+              <div className="subtitle-phase phase-1" key="phase-1">
+                <div className="english">DOMAIN EXPANSION</div>
+                <div className="translation">LIMITLESS TECHNIQUE DEPLOYING</div>
+              </div>
+            )}
+            {phase === 2 && (
+              <div className="subtitle-phase phase-2" key="phase-2">
+                <div className="english">ANANT SHUNYATA</div>
+                <div className="translation">INFINITE VOID</div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
