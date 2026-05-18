@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useGameState } from '../hooks/useGameState';
+import loadingVideoUrl from '../../assets/TechTokenLoading.mp4';
 import './MatchStartOverlay.css';
 
 const START_DURATION_MS = 10_000;
@@ -166,6 +167,16 @@ const MatchStartOverlay = () => {
     <div className={`match-start-overlay ${isTearing ? 'tearing' : ''} ${phase === 2 ? 'void-mode' : ''} ${timerPulse ? 'pulse-timer' : ''}`}>
       <audio ref={audioRef} src={new URL('../../assets/anant.mp3', import.meta.url).href} />
 
+      <video
+        className="loading-video-bg"
+        src={loadingVideoUrl}
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="auto"
+        aria-hidden="true"
+      />
       <div className="background-container" />
       <div className="overlay" />
       <div className={`flash-screen ${flashActive ? 'flash-animation' : ''}`} />
