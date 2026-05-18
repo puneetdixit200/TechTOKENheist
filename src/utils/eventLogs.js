@@ -7,6 +7,8 @@ export const formatMatchOutcomeLog = (entry = {}) => {
 
 const getHistoryWinnerId = (entry) => entry?.winnerId || entry?.winner_id || null
 const getHistoryLoserId = (entry) => entry?.loserId || entry?.loser_id || null
+const getHistoryWinnerName = (entry) => entry?.winnerName || entry?.winner || 'Unknown'
+const getHistoryLoserName = (entry) => entry?.loserName || entry?.loser || 'Unknown'
 
 const getHistoryTime = (entry) => entry?.time || entry?.timestamp || entry?.created_at || ''
 
@@ -15,11 +17,26 @@ const matchesTeam = (entry, teamId, teamName) => {
   const winnerId = getHistoryWinnerId(entry)
   const loserId = getHistoryLoserId(entry)
   if (teamId && (winnerId === teamId || loserId === teamId)) return true
-  if (teamName && (entry.winner === teamName || entry.loser === teamName)) return true
+  if (teamName && (getHistoryWinnerName(entry) === teamName || getHistoryLoserName(entry) === teamName)) return true
   return false
 }
 
+export const formatPlayerMatchOutcomeLog = (entry = {}, teamId = null, teamName = null) => {
+  const winnerId = getHistoryWinnerId(entry)
+  const loserId = getHistoryLoserId(entry)
+  const winner = getHistoryWinnerName(entry)
+  const loser = getHistoryLoserName(entry)
+  const domain = entry.domain || 'Unknown'
+  const playerWon = (teamId && winnerId === teamId) || (teamName && winner === teamName)
+  const playerLost = (teamId && loserId === teamId) || (teamName && loser === teamName)
+
+  if (playerWon) return `You defeated ${loser} in domain ${domain}`
+  if (playerLost) return `You were defeated by ${winner} in domain ${domain}`
+  return formatMatchOutcomeLog(entry)
+}
+
 export const buildTelemetryLogs = ({ matchHistory = [], teamId = null, teamName = null } = {}) => {
+  const hasPlayerScope = Boolean(teamId || teamName)
   const scopedHistory = teamId || teamName
     ? matchHistory.filter((entry) => matchesTeam(entry, teamId, teamName))
     : matchHistory
@@ -27,7 +44,9 @@ export const buildTelemetryLogs = ({ matchHistory = [], teamId = null, teamName 
   return [...scopedHistory].reverse().map((entry, index) => ({
     id: entry.id || `telemetry-${index}`,
     time: getHistoryTime(entry),
-    message: formatMatchOutcomeLog(entry),
+    message: hasPlayerScope
+      ? formatPlayerMatchOutcomeLog(entry, teamId, teamName)
+      : formatMatchOutcomeLog(entry),
     raw: entry,
   }))
 }

@@ -30,8 +30,23 @@ test('player telemetry logs include only that player match history', () => {
   })
 
   assert.deepEqual(logs.map((log) => log.message), [
-    'Nairobi defeated Berlin in Guess Output domain',
-    'Berlin defeated Denver in Tech Quiz domain',
+    'You were defeated by Nairobi in domain Guess Output',
+    'You defeated Denver in domain Tech Quiz',
+  ])
+})
+
+test('player telemetry uses id matching and readable fallback names', () => {
+  const logs = buildTelemetryLogs({
+    matchHistory: [
+      { id: '1', winnerName: 'Alicia', loserName: 'Rio', winner_id: 'team-a', loser_id: 'team-b', domain: 'Tech Pitch', time: '10:03' },
+      { id: '2', winner: 'Bogota', loser: 'Oslo', winner_id: 'team-c', loser_id: 'team-d', domain: 'Tech Quiz', time: '10:04' },
+    ],
+    teamId: 'team-b',
+    teamName: 'Rio',
+  })
+
+  assert.deepEqual(logs.map((log) => log.message), [
+    'You were defeated by Alicia in domain Tech Pitch',
   ])
 })
 

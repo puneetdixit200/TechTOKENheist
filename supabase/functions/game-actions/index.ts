@@ -110,6 +110,17 @@ const insertNotification = async (message) => {
     }
 };
 
+const formatDomainForLog = (domain) => {
+    const value = String(domain || '').trim();
+    return value || 'Unknown';
+};
+
+const formatMatchStartedNotification = ({ teamAName, teamBName, domain }) =>
+    `Match started: ${teamAName} vs ${teamBName} in ${formatDomainForLog(domain)} domain.`;
+
+const formatMatchOutcomeNotification = ({ winnerName, loserName, domain }) =>
+    `${winnerName} defeated ${loserName} in ${formatDomainForLog(domain)} domain.`;
+
 const normalizeTeam = (team) => ({
     ...team,
     status: team?.status || 'idle',
@@ -870,7 +881,11 @@ serve(async (req) => {
 
                 await supabaseAdmin.from('matchmaking_queue').delete().or(`team_id.eq.${teamAId},team_id.eq.${teamBId}`);
                 await supabaseAdmin.from('teams').update({ status: 'fighting' }).in('id', [teamAId, teamBId]);
-                await insertNotification(`Match started: ${teamA?.name || teamAId} vs ${teamB?.name || teamBId}`);
+                await insertNotification(formatMatchStartedNotification({
+                    teamAName: teamA?.name || teamAId,
+                    teamBName: teamB?.name || teamBId,
+                    domain,
+                }));
                 return ok({ match });
             }
 
@@ -959,7 +974,11 @@ serve(async (req) => {
                     // Best-effort history.
                 }
 
-                const outcomeMessage = `${winnerTeam.name} defeated ${loserTeam.name} in ${match.domain} domain.`;
+                const outcomeMessage = formatMatchOutcomeNotification({
+                    winnerName: winnerTeam.name,
+                    loserName: loserTeam.name,
+                    domain: match.domain,
+                });
                 await insertNotification(outcomeMessage);
 
                 try {

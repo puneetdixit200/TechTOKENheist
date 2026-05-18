@@ -192,8 +192,22 @@ test('winner declaration stores id-linked telemetry and required win log text', 
   const edgeFunction = readProjectFile('supabase/functions/game-actions/index.ts')
   const declareWinnerBlock = getCaseBlock(edgeFunction, "case 'declareWinner':", "case 'spinDomain':")
 
-  assert.match(declareWinnerBlock, /const outcomeMessage = `\$\{winnerTeam\.name\} defeated \$\{loserTeam\.name\} in \$\{match\.domain\} domain\.`/)
+  assert.match(edgeFunction, /const formatDomainForLog = \(domain\) =>/)
+  assert.match(edgeFunction, /const formatMatchOutcomeNotification = \(\{ winnerName, loserName, domain \}\) =>/)
+  assert.match(declareWinnerBlock, /const outcomeMessage = formatMatchOutcomeNotification\(\{\s*winnerName:\s*winnerTeam\.name,\s*loserName:\s*loserTeam\.name,\s*domain:\s*match\.domain,\s*\}\)/)
   assert.match(declareWinnerBlock, /await insertNotification\(outcomeMessage\)/)
   assert.match(declareWinnerBlock, /winner_id:\s*winnerId/)
   assert.match(declareWinnerBlock, /loser_id:\s*loserId/)
+})
+
+test('match start intel notifications include the assigned domain', () => {
+  const edgeFunction = readProjectFile('supabase/functions/game-actions/index.ts')
+  const createMatchBlock = getCaseBlock(edgeFunction, "case 'createMatch':", "case 'declareWinner':")
+  const smokeScript = readProjectFile('scripts/verify-admin-workflow-smoke.js')
+
+  assert.match(edgeFunction, /const formatMatchStartedNotification = \(\{ teamAName, teamBName, domain \}\) =>/)
+  assert.match(edgeFunction, /`Match started: \$\{teamAName\} vs \$\{teamBName\} in \$\{formatDomainForLog\(domain\)\} domain\.`/)
+  assert.match(createMatchBlock, /await insertNotification\(formatMatchStartedNotification\(\{\s*teamAName:\s*teamA\?\.name \|\| teamAId,\s*teamBName:\s*teamB\?\.name \|\| teamBId,\s*domain,\s*\}\)\)/)
+  assert.match(smokeScript, /message:\s*`\$\{winner\.name\} defeated \$\{loser\.name\} in \$\{match\.domain\} domain`/)
+  assert.match(smokeScript, /message:\s*`Match started: \$\{teamA\.name\} vs \$\{teamB\.name\} in \$\{domain\} domain\.`/)
 })

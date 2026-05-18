@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useGameState } from '../hooks/useGameState';
 import { Users, Trophy, Activity, Bell, Clock3, AlertCircle } from 'lucide-react';
 import { formatToIST } from '../utils/publicStateSnapshot';
+import { buildTelemetryLogs } from '../utils/eventLogs';
 
 const formatLeaderboardTimestamp = (value) => (
   value ? formatToIST(value) : 'NO TOKEN EXCHANGE'
@@ -15,13 +16,15 @@ const LobbyScreen = () => {
   const itemVariants = { hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1 } };
 
   const teamName = myTeam?.name || 'GUEST';
-  
-  const teamMatchHistory = useMemo(() => {
-    if (!teamName || teamName === 'GUEST') return [];
-    return matchHistory.filter(h => h.winner === teamName || h.loser === teamName);
-  }, [matchHistory, teamName]);
 
-  const recentMatches = [...teamMatchHistory].slice(-4).reverse();
+  const recentMatches = useMemo(() => {
+    if (!myTeam?.id && teamName === 'GUEST') return [];
+    return buildTelemetryLogs({
+      matchHistory,
+      teamId: myTeam?.id,
+      teamName,
+    }).slice(0, 4);
+  }, [matchHistory, myTeam?.id, teamName]);
   const recentNotifications = [...(notifications || [])].slice(-4).reverse();
 
   return (
@@ -185,15 +188,11 @@ const LobbyScreen = () => {
                   recentMatches.map((entry, index) => (
                     <div key={`${entry.id || index}`} className="bg-black/40 border-l border-red-600 p-4 flex flex-col gap-3 hover:bg-white/5 transition-colors">
                       <div className="flex items-center justify-between">
-                        <span className="heist-mono text-[9px] text-red-500 uppercase tracking-[0.2em] font-bold">{entry.domain || 'SECTOR UNKNOWN'}</span>
-                        <span className="heist-mono text-[9px] text-gray-700">{entry.timestamp || entry.created_at || ''}</span>
+                        <span className="heist-mono text-[9px] text-red-500 uppercase tracking-[0.2em] font-bold">{entry.raw?.domain || 'SECTOR UNKNOWN'}</span>
+                        <span className="heist-mono text-[9px] text-gray-700">{entry.time || ''}</span>
                       </div>
                       <div className="heist-mono text-xs tracking-widest uppercase leading-relaxed">
-                        {entry.winner === teamName ? (
-                          <span className="text-teal-500 font-bold">MISSION SUCCESS: NEUTRALIZED {entry.loser}</span>
-                        ) : (
-                          <span className="text-red-600 font-bold">MISSION FAILURE: NEUTRALIZED BY {entry.winner}</span>
-                        )}
+                        <span className={`${entry.message.startsWith('You defeated') ? 'text-teal-500' : 'text-red-600'} font-bold`}>{entry.message}</span>
                       </div>
                     </div>
                   ))

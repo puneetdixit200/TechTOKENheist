@@ -350,6 +350,12 @@ const createMatchRow = (state, teamAId, teamBId, domain) => {
   state.matchmaking_queue = state.matchmaking_queue
     .filter((row) => ![teamA.id, teamB.id].includes(row.team_id))
     .map((row) => ([teamA.id, teamB.id].includes(row.matched_with) ? { ...row, matched_with: null } : row))
+  state.notifications.push({
+    id: `smoke-notification-${state.ids.notification++}`,
+    message: `Match started: ${teamA.name} vs ${teamB.name} in ${domain} domain.`,
+    time: new Date().toLocaleTimeString(),
+    created_at: new Date().toISOString(),
+  })
 
   return match
 }
@@ -382,12 +388,12 @@ const declare_match_winner = (state, body) => {
     loser: loser.name,
     domain: match.domain,
     timestamp: body?.p_timestamp || new Date().toLocaleTimeString(),
-    is_wager: false,
+    is_wager: Boolean(match.is_wager),
     created_at: new Date().toISOString(),
   })
   state.notifications.push({
     id: `smoke-notification-${state.ids.notification++}`,
-    message: `${winner.name} defeated ${loser.name}`,
+    message: `${winner.name} defeated ${loser.name} in ${match.domain} domain`,
     time: body?.p_timestamp || new Date().toLocaleTimeString(),
     created_at: new Date().toISOString(),
   })

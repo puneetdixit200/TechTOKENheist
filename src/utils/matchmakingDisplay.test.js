@@ -113,6 +113,18 @@ test('leaderboards display token update timestamps', () => {
   assert.match(lobbyScreen, /LAST TOKEN/)
 })
 
+test('player lobby telemetry uses player-scoped match history formatter', () => {
+  const lobbyScreen = readProjectFile('src/screens/LobbyScreen.jsx')
+
+  assert.match(lobbyScreen, /buildTelemetryLogs/)
+  assert.match(lobbyScreen, /teamId:\s*myTeam\?\.id/)
+  assert.match(lobbyScreen, /teamName/)
+  assert.match(lobbyScreen, /recentMatches\.map/)
+  assert.match(lobbyScreen, /\{entry\.message\}/)
+  assert.doesNotMatch(lobbyScreen, /MISSION SUCCESS: NEUTRALIZED/)
+  assert.doesNotMatch(lobbyScreen, /MISSION FAILURE: NEUTRALIZED BY/)
+})
+
 test('finale screen avoids emoji glyph alignment and exposes music controls before victory', () => {
   const finaleOverlay = readProjectFile('src/components/FinaleOverlay.jsx')
   const finaleCss = readProjectFile('src/components/FinaleOverlay.css')
