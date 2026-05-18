@@ -63,6 +63,7 @@
 /* ─── HEADER PANEL ─── */
 .showdown-header-panel {
   width: 100%;
+  min-height: 76px;
   padding: 25px 50px;
   background: linear-gradient(to bottom, rgba(2, 2, 5, 0.95) 60%, rgba(2, 2, 5, 0));
   display: grid;
@@ -195,12 +196,15 @@
   position: absolute;
   top: 40%;
   left: 20%;
-  font-size: 280px;
-  font-weight: 900;
-  line-height: 1;
-  font-family: 'Orbitron', sans-serif;
-  color: rgba(255, 0, 60, 0.03);
-  text-shadow: 0 0 50px rgba(255, 0, 60, 0.1);
+  width: 280px;
+  height: 280px;
+  background:
+    linear-gradient(135deg, transparent 35%, rgba(255, 0, 60, 0.16) 36% 42%, transparent 43%),
+    linear-gradient(45deg, transparent 35%, rgba(255, 0, 60, 0.12) 36% 42%, transparent 43%),
+    radial-gradient(circle, rgba(255, 0, 60, 0.08), transparent 62%);
+  clip-path: polygon(50% 0, 63% 34%, 100% 38%, 70% 59%, 79% 100%, 50% 76%, 21% 100%, 30% 59%, 0 38%, 37% 34%);
+  filter: drop-shadow(0 0 35px rgba(255, 0, 60, 0.2));
+  opacity: 0.62;
   transform: translate(-50%, -50%) rotate(-12deg);
   pointer-events: none;
   animation: emblemPulse 4s ease-in-out infinite alternate;
@@ -222,12 +226,16 @@
   position: absolute;
   top: 40%;
   right: 20%;
-  font-size: 240px;
-  font-weight: 900;
-  line-height: 1;
-  font-family: 'Orbitron', sans-serif;
-  color: rgba(0, 210, 255, 0.03);
-  text-shadow: 0 0 50px rgba(0, 210, 255, 0.1);
+  width: 250px;
+  height: 250px;
+  border: 1px solid rgba(0, 210, 255, 0.12);
+  background:
+    linear-gradient(90deg, transparent 46%, rgba(0, 210, 255, 0.14) 47% 53%, transparent 54%),
+    linear-gradient(0deg, transparent 46%, rgba(0, 210, 255, 0.1) 47% 53%, transparent 54%),
+    radial-gradient(circle, rgba(0, 210, 255, 0.08), transparent 64%);
+  clip-path: polygon(50% 0, 85% 14%, 100% 50%, 85% 86%, 50% 100%, 15% 86%, 0 50%, 15% 14%);
+  filter: drop-shadow(0 0 35px rgba(0, 210, 255, 0.18));
+  opacity: 0.7;
   transform: translate(50%, -50%) rotate(12deg);
   pointer-events: none;
   animation: emblemPulse 4s ease-in-out infinite alternate-reverse;
@@ -844,20 +852,19 @@
 
 .finale-audio-player {
   position: fixed;
-  left: 50%;
-  bottom: 22px;
-  transform: translateX(-50%);
+  top: 88px;
+  right: 28px;
   z-index: 130;
-  width: min(520px, calc(100vw - 32px));
-  min-height: 64px;
+  width: min(360px, calc(100vw - 56px));
+  min-height: 58px;
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 16px;
+  gap: 12px;
   align-items: center;
-  padding: 12px 14px;
+  padding: 10px 12px;
   border: 1px solid rgba(253, 216, 53, 0.42);
   border-radius: 8px;
-  background: rgba(2, 2, 5, 0.94);
+  background: rgba(2, 2, 5, 0.88);
   box-shadow: 0 16px 45px rgba(0, 0, 0, 0.72), 0 0 22px rgba(253, 216, 53, 0.12);
   backdrop-filter: blur(14px);
 }
@@ -893,7 +900,7 @@
 }
 
 .finale-audio-controls button {
-  min-width: 82px;
+  min-width: 72px;
   border: 1px solid rgba(253, 216, 53, 0.4);
   border-radius: 6px;
   color: #fdd835;
@@ -1114,7 +1121,7 @@
   .showdown-vs-badge { width: 60px; height: 60px; border-width: 2px; }
   .vs-badge-text { font-size: 22px; }
   .showdown-hud-deck { padding: 20px 25px 0 25px; }
-  .finale-audio-player { grid-template-columns: 1fr; bottom: 14px; gap: 10px; }
+  .finale-audio-player { grid-template-columns: 1fr; top: 96px; right: 16px; gap: 10px; }
   .finale-audio-controls button { flex: 1; }
   .hud-middle-deck { flex-direction: column; gap: 20px; align-items: stretch; }
   .victory-winner-name { font-size: 46px; }

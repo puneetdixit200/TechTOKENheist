@@ -850,7 +850,7 @@ const FinaleOverlay = () => {
             {/* LEFT SPLIT SCREEN: CRIMSON RED (HELSINKI) */}
             <section className="battlefield-side side-left-crimson">
               <div className="grid-overlay" />
-              <div className="hologram-emblem-crimson">A</div>
+              <div className="hologram-emblem-crimson" aria-hidden="true" />
               
               {/* Embers and Smoke Emitter */}
               <div className="ambient-ember-emitter">
@@ -891,7 +891,7 @@ const FinaleOverlay = () => {
             {/* RIGHT SPLIT SCREEN: ELECTRIC BLUE (RIO) */}
             <section className="battlefield-side side-right-neon">
               <div className="grid-overlay" />
-              <div className="hologram-emblem-blue">B</div>
+              <div className="hologram-emblem-blue" aria-hidden="true" />
 
               {/* Cold Electric Smoke and Sparks Emitter */}
               <div className="ambient-spark-emitter">
