@@ -37,6 +37,17 @@ export const playElimination = () => {
   }
 };
 
+export const playFahLoss = () => {
+  try {
+    const audioUrl = new URL('../../assets/fah.mp3', import.meta.url).href;
+    const audio = new Audio(audioUrl);
+    audio.volume = 1;
+    audio.play().catch(e => console.warn('Fah loss audio play blocked by browser:', e));
+  } catch (e) {
+    console.log('Audio error:', e);
+  }
+};
+
 // High pitched coin chime for token gain
 export const playCoin = () => {
   try {

@@ -9,7 +9,8 @@ import FinaleOverlay from './components/FinaleOverlay';
 import WagerModeOverlay from './components/WagerModeOverlay';
 
 import { buildReadyQueuePairs } from './utils/matchmaking';
-import { playElimination } from './utils/audio';
+import { getHistoryEntryKey, getNewStandardLossEntries } from './utils/audioCues';
+import { playElimination, playFahLoss } from './utils/audio';
 import gdgLogo from '../assets/gdg.png';
 
 import './PlayerLayout.css';
@@ -42,10 +43,13 @@ const MissingSupabaseConfig = () => {
   );
 };
 
-const WagerEliminationAudioCue = () => {
-  const { user, myTeam, gameState } = useGameState();
+const PlayerMatchAudioCues = () => {
+  const { user, myTeam, gameState, matchHistory } = useGameState();
   const previousTeamIdRef = useRef(myTeam?.id || null);
   const previousStatusRef = useRef(myTeam?.status || null);
+  const lossCueTeamIdRef = useRef(myTeam?.id || null);
+  const knownHistoryKeysRef = useRef(new Set());
+  const hasSeededHistoryRef = useRef(false);
 
   useEffect(() => {
     const teamId = myTeam?.id || null;
@@ -69,6 +73,38 @@ const WagerEliminationAudioCue = () => {
 
     previousStatusRef.current = status;
   }, [gameState.phase, myTeam?.id, myTeam?.status, user?.role]);
+
+  useEffect(() => {
+    const history = matchHistory || [];
+    const currentHistoryKeys = new Set(history.map(getHistoryEntryKey));
+    const teamId = myTeam?.id || null;
+
+    if (lossCueTeamIdRef.current !== teamId) {
+      lossCueTeamIdRef.current = teamId;
+      knownHistoryKeysRef.current = currentHistoryKeys;
+      hasSeededHistoryRef.current = true;
+      return;
+    }
+
+    if (!hasSeededHistoryRef.current || user?.role !== 'player' || !myTeam) {
+      knownHistoryKeysRef.current = currentHistoryKeys;
+      hasSeededHistoryRef.current = true;
+      return;
+    }
+
+    const newStandardLosses = getNewStandardLossEntries({
+      matchHistory: history,
+      knownHistoryKeys: knownHistoryKeysRef.current,
+      myTeam,
+      phase: gameState.phase,
+    });
+
+    if (newStandardLosses.length > 0) {
+      playFahLoss();
+    }
+
+    knownHistoryKeysRef.current = currentHistoryKeys;
+  }, [gameState.phase, matchHistory, myTeam, user?.role]);
 
   return null;
 };
@@ -262,7 +298,7 @@ const AppContent = () => {
   return (
     <>
       <CountdownOverlay count={countdown} />
-      <WagerEliminationAudioCue />
+      <PlayerMatchAudioCues />
       {user?.role !== 'admin' && <MatchStartOverlay />}
       <FinaleOverlay />
       {user?.role !== 'admin' && <WagerModeOverlay />}
