@@ -1,7 +1,7 @@
 import { getProfileAvatar } from '../data/profileAvatars.js'
 import { buildConstraintsFromHistory } from './matchmaking.js'
 
-export const SAFE_TEAM_COLUMNS = 'id, name, member_names, leader, tokens, status, total_time, timeout_until, last_token_update_time, created_at'
+export const SAFE_TEAM_COLUMNS = 'id, name, member_names, leader, tokens, status, total_time, timeout_until, last_token_update_time, is_connected, last_seen_at, created_at'
 
 const PRIVATE_TEAM_FIELDS = new Set([
   'password',
@@ -60,6 +60,8 @@ export const normalizeTeam = (team) => {
     totalTime: safeTeam.total_time ?? safeTeam.totalTime ?? 0,
     timeoutUntil: toMillis(safeTeam.timeout_until ?? safeTeam.timeoutUntil ?? null),
     lastTokenUpdateTime: toMillis(safeTeam.last_token_update_time ?? safeTeam.lastTokenUpdateTime ?? null),
+    isConnected: Boolean(safeTeam.is_connected ?? safeTeam.isConnected ?? false),
+    lastSeenAt: toMillis(safeTeam.last_seen_at ?? safeTeam.lastSeenAt ?? null),
   }
 }
 
@@ -146,6 +148,8 @@ export const buildPublicStateSnapshot = ({
     const loserId = history.loser_id || history.loser
     return {
       ...history,
+      winnerId: history.winner_id || history.winnerId || null,
+      loserId: history.loser_id || history.loserId || null,
       winner: teamById[winnerId]?.name || history.winner,
       loser: teamById[loserId]?.name || history.loser,
       isWager: Boolean(history.is_wager || history.isWager),
@@ -173,6 +177,8 @@ export const buildPublicStateSnapshot = ({
       phase: system.phase || 'phase1',
       gameStartedAt: toMillis(system.game_started_at),
       pausedAt: toMillis(system.paused_at),
+      countdownStartedAt: toMillis(system.countdown_started_at),
+      countdownDurationMs: Number(system.countdown_duration_ms ?? system.countdownDurationMs ?? 0) || null,
       domains: system.domains || [],
       timeoutDurationOverride: system.timeout_duration_override || null,
       finaleState: system.finale_state || null,

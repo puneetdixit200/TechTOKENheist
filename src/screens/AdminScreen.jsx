@@ -7,7 +7,8 @@ import {
   Skull, Trophy, Swords, Activity
 } from 'lucide-react';
 import DomainWheel from '../components/DomainWheel';
-import { buildQueueDiagnostics } from '../utils/matchmaking';
+import { buildQueueDiagnostics, buildTeamMatchmakingDiagnostics } from '../utils/matchmaking';
+import { buildIntelFeedLogs, buildTelemetryLogs } from '../utils/eventLogs';
 import { PROFILE_AVATARS, DEFAULT_PROFILE_NAME, getProfileAvatar, getProfileLabel } from '../data/profileAvatars';
 import './AdminScreen.css';
 
@@ -43,6 +44,17 @@ const TimeoutDisplay = ({ timeoutUntil }) => {
     return () => clearInterval(iv);
   }, [timeoutUntil]);
   return <span className="heist-mono text-gray-400 bg-gray-900 px-2 border border-gray-600">{remaining}</span>;
+};
+
+const ConnectionBadge = ({ team }) => {
+  const isConnected = Boolean(team?.isConnected);
+  return (
+    <span className={`heist-mono text-[8px] px-1.5 py-0.5 border uppercase tracking-widest ${
+      isConnected ? 'border-heist-teal text-heist-teal bg-cyan-950/30' : 'border-gray-700 text-gray-500'
+    }`}>
+      {isConnected ? 'CONNECTED' : 'OFFLINE'}
+    </span>
+  );
 };
 
 const AdminScreen = () => {
@@ -234,6 +246,20 @@ const AdminScreen = () => {
     [activeMatches, gameState, teams, matchmakingQueue, matchConstraints]
   );
 
+  const allTeamDiagnostics = useMemo(
+    () => teams.map((team) => ({
+      team,
+      diagnostics: buildTeamMatchmakingDiagnostics({
+        gameState,
+        teams,
+        subjectTeamId: team.id,
+        matchConstraints,
+        activeMatches,
+      }),
+    })),
+    [activeMatches, gameState, teams, matchConstraints]
+  );
+
   useEffect(() => {
     if (!pendingDomainConfirm?.pair) return undefined;
     const stillReady = queuePairs.some(
@@ -269,9 +295,11 @@ const AdminScreen = () => {
     return notifications;
   }, [notifications, logFilter]);
 
+  const intelLogs = useMemo(() => buildIntelFeedLogs(filteredNotifications), [filteredNotifications]);
+
   const telemetryLogs = useMemo(() => {
-    return [...notifications].reverse();
-  }, [notifications]);
+    return buildTelemetryLogs({ matchHistory });
+  }, [matchHistory]);
 
   useEffect(() => {
     const shouldClear =
@@ -581,6 +609,7 @@ const AdminScreen = () => {
                         <span className={`heist-mono text-[10px] px-1 py-0.5 border ${t.status === 'eliminated' ? 'border-heist-red text-heist-red' : t.status === 'finalist' ? 'border-orange-500 text-orange-500' : t.status === 'spectating' ? 'border-gray-500 text-gray-300' : t.status === 'idle' ? 'border-heist-yellow text-heist-yellow' : t.status === 'fighting' ? 'border-heist-red bg-heist-red text-white' : 'border-gray-500 text-gray-400'}`}>
                           {t.status.toUpperCase()}
                         </span>
+                        <ConnectionBadge team={t} />
                         {t.status === 'timeout' && t.timeoutUntil && <TimeoutDisplay timeoutUntil={t.timeoutUntil} />}
                       </div>
                       <div className="heist-mono text-xs text-gray-400 mt-2 leading-relaxed break-words">
@@ -713,6 +742,47 @@ const AdminScreen = () => {
                     </div>
                   </div>
                 ))}
+
+                <div className="border-t border-gray-800 pt-4 mt-2">
+                  <h4 className="heist-font text-heist-teal text-xl tracking-wider mb-3">RECRUIT MATCH MATRIX</h4>
+                  <div className="flex flex-col gap-3">
+                    {allTeamDiagnostics.length === 0 && (
+                      <div className="heist-mono text-gray-500">No recruits available.</div>
+                    )}
+                    {allTeamDiagnostics.map(({ team, diagnostics }) => {
+                      const visibleRows = diagnostics.slice(0, 4);
+                      const hasPossibleMatch = diagnostics.some((entry) => entry.canMatchNow);
+                      return (
+                        <div key={team.id} className="border border-gray-800 bg-black bg-opacity-50 p-3">
+                          <div className="flex items-center justify-between gap-3 mb-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="heist-font text-lg text-white uppercase tracking-widest truncate">{team.name}</span>
+                              <ConnectionBadge team={team} />
+                            </div>
+                            <span className={`heist-mono text-[9px] px-1 py-0.5 border ${hasPossibleMatch ? 'border-heist-teal text-heist-teal' : 'border-gray-600 text-gray-500'}`}>
+                              {hasPossibleMatch ? 'HAS TARGETS' : 'BLOCKED'}
+                            </span>
+                          </div>
+                          <div className="flex flex-col gap-1 border-t border-gray-900 pt-2">
+                            {visibleRows.length === 0 ? (
+                              <div className="heist-mono text-[10px] text-gray-600">No opponents to compare.</div>
+                            ) : visibleRows.map((entry) => (
+                              <div key={entry.teamId} className="heist-mono text-[10px] flex justify-between gap-3">
+                                <span className="text-gray-400 truncate">vs {entry.teamName}</span>
+                                <span className={entry.canMatchNow ? 'text-heist-yellow' : 'text-heist-red'}>
+                                  {entry.canMatchNow ? 'Ready' : entry.reasons[0]}
+                                </span>
+                              </div>
+                            ))}
+                            {diagnostics.length > visibleRows.length && (
+                              <div className="heist-mono text-[9px] text-gray-600">+{diagnostics.length - visibleRows.length} more comparisons</div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -875,6 +945,7 @@ const AdminScreen = () => {
                           <span className={`heist-font text-3xl tracking-widest uppercase ${isEliminated ? 'text-heist-red line-through' : 'text-white'}`}>{t.name}</span>
                           <div className="flex items-center gap-2">
                             <span className="heist-mono text-[10px] text-gray-500 uppercase tracking-widest">Operator: {t.leader}</span>
+                            <ConnectionBadge team={t} />
                             {isEliminated && (
                               <span className="heist-mono text-[8px] uppercase tracking-widest text-heist-red border border-heist-red px-1.5 py-0.5 bg-red-950">
                                 ELIMINATED
@@ -1083,7 +1154,7 @@ const AdminScreen = () => {
                 </div>
               </div>
               <div className="flex-1 overflow-y-auto pr-2 flex flex-col gap-2 custom-scrollbar">
-                {[...filteredNotifications].reverse().map((n, i) => (
+                {intelLogs.map((n, i) => (
                   <div key={i} className="border-l-2 border-heist-teal bg-black bg-opacity-60 p-3 hover:bg-opacity-80 transition-all">
                     <div className="flex justify-between items-start mb-1">
                       <span className="heist-mono text-[10px] text-gray-500 uppercase">{n.time}</span>
@@ -1102,7 +1173,7 @@ const AdminScreen = () => {
                   <div key={`${entry.time || 'telemetry'}-${i}`} className="border-l-2 border-heist-red bg-black bg-opacity-60 p-3 hover:bg-opacity-80 transition-all">
                     <div className="flex justify-between items-center mb-2">
                       <span className="heist-mono text-[10px] text-red-500 uppercase font-bold tracking-widest">EVENT</span>
-                      <span className="heist-mono text-[10px] text-gray-500 uppercase">{entry.time || entry.timestamp || entry.created_at}</span>
+                      <span className="heist-mono text-[10px] text-gray-500 uppercase">{entry.time}</span>
                     </div>
                     <div className="heist-mono text-xs tracking-widest uppercase flex items-center gap-2">
                       <span className="text-white">{entry.message}</span>

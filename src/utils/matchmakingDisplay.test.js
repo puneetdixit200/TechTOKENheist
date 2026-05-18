@@ -66,3 +66,31 @@ test('admin delete team action uses confirmation modal', () => {
   assert.match(adminScreen, /onClick=\{\(\) => handleDeleteTeam\(t\)\}/)
   assert.doesNotMatch(adminScreen, /onClick=\{\(\) => deleteTeam\(t\.id\)\}/)
 })
+
+test('arena shows player matchmaking field diagnostics and removes crew roster', () => {
+  const arenaScreen = readProjectFile('src/screens/ArenaScreen.jsx')
+
+  assert.match(arenaScreen, /buildTeamMatchmakingDiagnostics/)
+  assert.match(arenaScreen, /MATCHMAKING FIELD/)
+  assert.match(arenaScreen, /LOCK POSSIBLE/)
+  assert.match(arenaScreen, /TELEMETRY LOGS/)
+  assert.match(arenaScreen, /INTEL FEED/)
+  assert.doesNotMatch(arenaScreen, /CREW ROSTER/)
+})
+
+test('admin recruit views expose connection status and all-team match diagnostics', () => {
+  const adminScreen = readProjectFile('src/screens/AdminScreen.jsx')
+
+  assert.match(adminScreen, /ConnectionBadge/)
+  assert.match(adminScreen, /isConnected/)
+  assert.match(adminScreen, /RECRUIT MATCH MATRIX/)
+  assert.match(adminScreen, /buildTeamMatchmakingDiagnostics/)
+})
+
+test('admin logs split global intel feed from match telemetry history', () => {
+  const adminScreen = readProjectFile('src/screens/AdminScreen.jsx')
+
+  assert.match(adminScreen, /buildIntelFeedLogs/)
+  assert.match(adminScreen, /buildTelemetryLogs/)
+  assert.doesNotMatch(adminScreen, /const telemetryLogs = useMemo\(\(\) => \{\s*return \[\.\.\.notifications\]\.reverse\(\)/)
+})

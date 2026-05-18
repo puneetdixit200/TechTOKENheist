@@ -427,6 +427,34 @@ export function buildQueueDiagnostics({ gameState, teams, matchmakingQueue, matc
   })
 }
 
+export function buildTeamMatchmakingDiagnostics({ gameState, teams, subjectTeamId, matchConstraints, activeMatches }) {
+  const activeTeamIds = buildActiveTeamIds(activeMatches)
+  const byId = new Map((teams || []).map((team) => [team.id, team]))
+  const subject = byId.get(subjectTeamId)
+  if (!subject) return []
+
+  return (teams || [])
+    .filter((team) => team?.id && team.id !== subjectTeamId)
+    .map((team) => {
+      const reasons = getQueueBlockReasons({
+        gameState,
+        teamA: subject,
+        teamB: team,
+        matchConstraints,
+        activeTeamIds,
+      })
+
+      return {
+        teamId: team.id,
+        teamName: team.name,
+        tokens: team.tokens ?? 0,
+        status: team.status || 'idle',
+        reasons,
+        canMatchNow: reasons.length === 0,
+      }
+    })
+}
+
 export function timeoutMinutesToMs(value) {
   const minutes = Number(value)
   if (!Number.isFinite(minutes) || minutes <= 0) return null

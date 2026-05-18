@@ -2,10 +2,11 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useGameState } from '../hooks/useGameState';
 import { Swords, Crosshair, Ban, Lock, Zap, Search, Timer, ShieldAlert, AlertCircle, Users } from 'lucide-react';
-import { buildQueueDiagnostics } from '../utils/matchmaking';
+import { buildQueueDiagnostics, buildTeamMatchmakingDiagnostics } from '../utils/matchmaking';
+import { buildIntelFeedLogs, buildTelemetryLogs } from '../utils/eventLogs';
 
 const ArenaScreen = () => {
-  const { teams, activeMatches, myTeam, gameState, isInQueue, myQueueEntry, matchmakingQueue, matchConstraints } = useGameState();
+  const { teams, activeMatches, myTeam, gameState, isInQueue, myQueueEntry, matchmakingQueue, matchConstraints, matchHistory, notifications } = useGameState();
   const amIEliminated = myTeam && myTeam.status === 'eliminated';
   const amITimeout = myTeam && myTeam.status === 'timeout';
   const isPaused = gameState.isPaused;
@@ -28,6 +29,27 @@ const ArenaScreen = () => {
   const myQueueDiagnostics = React.useMemo(
     () => queueDiagnostics.find((q) => q.teamId === myTeam?.id) || null,
     [queueDiagnostics, myTeam]
+  );
+
+  const matchFieldDiagnostics = React.useMemo(
+    () => buildTeamMatchmakingDiagnostics({
+      gameState,
+      teams,
+      subjectTeamId: myTeam?.id,
+      matchConstraints,
+      activeMatches,
+    }),
+    [activeMatches, gameState, teams, myTeam?.id, matchConstraints]
+  );
+
+  const telemetryLogs = React.useMemo(
+    () => buildTelemetryLogs({ matchHistory, teamId: myTeam?.id, teamName: myTeam?.name }),
+    [matchHistory, myTeam?.id, myTeam?.name]
+  );
+
+  const intelFeedLogs = React.useMemo(
+    () => buildIntelFeedLogs(notifications),
+    [notifications]
   );
 
   const fightingTeams = React.useMemo(
@@ -208,6 +230,45 @@ const ArenaScreen = () => {
         </motion.div>
       )}
 
+      {myTeam && (
+        <motion.div variants={itemVariants} className="heist-card">
+          <div className="heist-card-header flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Crosshair className="text-gray-400" size={20} />
+              <h3 className="heist-font text-gray-200 text-2xl tracking-widest m-0 uppercase">MATCHMAKING FIELD</h3>
+            </div>
+            <div className="heist-badge badge-gray">{matchFieldDiagnostics.length} TARGETS SCANNED</div>
+          </div>
+
+          <div className="heist-card-content">
+            {matchFieldDiagnostics.length === 0 ? (
+              <div className="heist-mono text-gray-600 text-xs uppercase tracking-widest py-6 text-center border border-dashed border-white/10">
+                NO RIVAL CREWS AVAILABLE FOR SCAN
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                {matchFieldDiagnostics.map((entry) => (
+                  <div key={entry.teamId} className="border border-white/10 bg-black/50 p-4 flex flex-col gap-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="heist-font text-xl text-white tracking-widest uppercase truncate">{entry.teamName}</div>
+                        <div className="heist-mono text-[10px] text-gray-600 uppercase tracking-widest">{entry.tokens} TKN / {entry.status}</div>
+                      </div>
+                      <div className={`heist-badge ${entry.canMatchNow ? 'badge-teal' : 'badge-red'} text-[8px]`}>
+                        {entry.canMatchNow ? 'LOCK POSSIBLE' : 'BLOCKED'}
+                      </div>
+                    </div>
+                    <div className={`heist-mono text-[10px] uppercase tracking-widest ${entry.canMatchNow ? 'text-heist-teal' : 'text-heist-red'}`}>
+                      {entry.canMatchNow ? 'Ready under current mode rules' : entry.reasons.join(' / ')}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </motion.div>
+      )}
+
       {/* Stats Readout */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
@@ -292,49 +353,42 @@ const ArenaScreen = () => {
         </motion.div>
       )}
 
-      {/* All Teams Grid */}
-      <motion.div variants={itemVariants} className="heist-card mb-12">
-        <div className="heist-card-header flex items-center gap-3">
-          <Users className="text-gray-400" size={24} />
-          <h2 className="heist-font text-white text-3xl tracking-widest m-0 uppercase">CREW ROSTER</h2>
+      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
+        <div className="heist-card">
+          <div className="heist-card-header flex items-center justify-between">
+            <h2 className="heist-font text-white text-3xl tracking-widest m-0 uppercase">TELEMETRY LOGS</h2>
+            <div className="heist-badge badge-gray">YOUR MATCHES</div>
+          </div>
+          <div className="heist-card-content flex flex-col gap-2 max-h-[360px] overflow-y-auto">
+            {telemetryLogs.length === 0 ? (
+              <div className="heist-mono text-gray-600 text-xs uppercase tracking-widest py-8 text-center border border-dashed border-white/10">
+                NO MATCH HISTORY RECORDED FOR YOUR CREW
+              </div>
+            ) : telemetryLogs.map((entry) => (
+              <div key={entry.id} className="border-l-2 border-heist-red bg-black/50 p-3">
+                <div className="heist-mono text-[10px] text-gray-500 uppercase tracking-widest mb-1">{entry.time}</div>
+                <div className="heist-mono text-xs text-white uppercase tracking-widest">{entry.message}</div>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="heist-card-content">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {teams.filter(t => !myTeam || t.id !== myTeam.id).map(team => {
-              const isEliminated = team.status === 'eliminated';
-              const isTimeout = team.status === 'timeout';
-              const isFighting = team.status === 'fighting';
-              
-              return (
-                <div key={team.id} className={`p-5 heist-card transition-all duration-300 ${
-                  isEliminated ? 'opacity-40 grayscale' : 
-                  isFighting ? 'border-red-600/30' : 'hover:border-white/20'
-                }`}>
-                  <div className="flex justify-between items-start mb-6">
-                    <div className="flex flex-col min-w-0">
-                      <span className={`heist-font text-xl truncate tracking-widest uppercase ${isEliminated ? 'text-red-600 line-through' : 'text-white'}`}>
-                        {team.name}
-                      </span>
-                      <span className="heist-mono text-[8px] text-gray-600 tracking-widest uppercase">{team.members} OPERATIVES</span>
-                    </div>
-                    <div className={`heist-badge ${
-                      isEliminated ? 'badge-red' : 
-                      isTimeout ? 'badge-red' : 
-                      isFighting ? 'badge-red animate-pulse' : 
-                      'badge-gray'
-                    } text-[7px]`}>
-                      {team.status}
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-end">
-                    <div className={`heist-font text-4xl leading-none ${isEliminated ? 'text-red-900' : 'text-white'}`}>
-                      {team.tokens} <span className="text-xs text-gray-600">TKN</span>
-                    </div>
-                    {isFighting && <Swords size={16} className="text-red-600" />}
-                  </div>
-                </div>
-              );
-            })}
+
+        <div className="heist-card">
+          <div className="heist-card-header flex items-center justify-between">
+            <h2 className="heist-font text-white text-3xl tracking-widest m-0 uppercase">INTEL FEED</h2>
+            <div className="heist-badge badge-teal">GLOBAL ACTIVITY</div>
+          </div>
+          <div className="heist-card-content flex flex-col gap-2 max-h-[360px] overflow-y-auto">
+            {intelFeedLogs.length === 0 ? (
+              <div className="heist-mono text-gray-600 text-xs uppercase tracking-widest py-8 text-center border border-dashed border-white/10">
+                NO ARENA ACTIVITY RECORDED
+              </div>
+            ) : intelFeedLogs.slice(0, 20).map((entry) => (
+              <div key={entry.id} className="border-l-2 border-heist-teal bg-black/50 p-3">
+                <div className="heist-mono text-[10px] text-gray-500 uppercase tracking-widest mb-1">{entry.time}</div>
+                <div className="heist-mono text-xs text-gray-200 uppercase tracking-widest">{entry.message}</div>
+              </div>
+            ))}
           </div>
         </div>
       </motion.div>

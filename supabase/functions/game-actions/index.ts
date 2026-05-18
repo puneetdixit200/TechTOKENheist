@@ -27,6 +27,8 @@ const DEFAULT_SYSTEM_ROW = {
     phase: 'phase1',
     game_started_at: null,
     paused_at: null,
+    countdown_started_at: null,
+    countdown_duration_ms: null,
     timeout_duration_override: null,
     domains: DEFAULT_DOMAINS,
     finale_state: null,
@@ -125,6 +127,8 @@ const toPublicTeamSnapshot = (team) => ({
     total_time: team?.total_time ?? team?.totalTime ?? 0,
     timeout_until: team?.timeout_until ?? team?.timeoutUntil ?? null,
     last_token_update_time: team?.last_token_update_time ?? team?.lastTokenUpdateTime ?? null,
+    is_connected: team?.is_connected ?? team?.isConnected ?? false,
+    last_seen_at: team?.last_seen_at ?? team?.lastSeenAt ?? null,
 });
 
 const enforceWagerEliminations = async () => {
@@ -264,7 +268,7 @@ const matchQueuedTeams = async ({
     }
 
     const system = await getGameSystem();
-    if (!system?.is_game_active || system?.is_paused) return [];
+    if (!system?.is_game_active || system?.is_paused || system?.status !== 'active') return [];
     if (system?.finale_state?.isFinaleActive) return [];
 
     if (resetExistingLocks) {
@@ -357,8 +361,8 @@ serve(async (req) => {
         }
     }
 
-    const adminActions = ['enrollAllEligible', 'startGame', 'stopGame', 'resetGame', 'togglePhase', 'createTeam', 'editTeam', 'deleteTeam', 'updateTokens', 'recoverFromTimeout', 'createMatch', 'declareWinner', 'spinDomain', 'updateDomains', 'setTimeoutDuration', 'rematchQueue', 'autoMatchPairs', 'endMatchAndStartFinale', 'setFinaleDomain', 'declareFinaleRoundWinner', 'endFinale', 'enforceWagerEliminations'];
-    const playerActions = ['joinQueue', 'leaveQueue'];
+    const adminActions = ['enrollAllEligible', 'startGame', 'activateStartedGame', 'stopGame', 'resetGame', 'togglePhase', 'createTeam', 'editTeam', 'deleteTeam', 'updateTokens', 'recoverFromTimeout', 'createMatch', 'declareWinner', 'spinDomain', 'updateDomains', 'setTimeoutDuration', 'rematchQueue', 'autoMatchPairs', 'endMatchAndStartFinale', 'setFinaleDomain', 'declareFinaleRoundWinner', 'endFinale', 'enforceWagerEliminations'];
+    const playerActions = ['heartbeat', 'logout', 'joinQueue', 'leaveQueue'];
 
     if (adminActions.includes(action) && userRole !== 'admin') {
         return fail(403, 'Admin privileges required');
@@ -431,6 +435,11 @@ serve(async (req) => {
 
                 const issuePlayerToken = async () => {
                     console.log(`Player login successful for team: ${team.name}`);
+                    await supabaseAdmin
+                        .from('teams')
+                        .update({ is_connected: true, last_seen_at: Date.now() })
+                        .eq('id', team.id);
+                    await insertNotification(`${team.name} entered the arena.`);
                     const token = await new jose.SignJWT({ role: 'player', teamId: team.id })
                         .setProtectedHeader({ alg: 'HS256' })
                         .setIssuedAt()
@@ -450,6 +459,26 @@ serve(async (req) => {
                 }
 
                 return await issuePlayerToken();
+            }
+
+            case 'heartbeat': {
+                const teamId = payload?.teamId;
+                if (!teamId) return fail(400, 'Missing teamId');
+                await supabaseAdmin
+                    .from('teams')
+                    .update({ is_connected: true, last_seen_at: Date.now() })
+                    .eq('id', teamId);
+                return ok();
+            }
+
+            case 'logout': {
+                const teamId = payload?.teamId;
+                if (!teamId) return fail(400, 'Missing teamId');
+                await supabaseAdmin
+                    .from('teams')
+                    .update({ is_connected: false, last_seen_at: Date.now() })
+                    .eq('id', teamId);
+                return ok();
             }
 
             case 'joinQueue': {
@@ -488,24 +517,77 @@ serve(async (req) => {
             case 'startGame': {
                 const sys = await getGameSystem();
                 const isResume = sys?.is_paused;
+                if (isResume) {
+                    const { error } = await supabaseAdmin.from('system').update({
+                        is_game_active: true,
+                        is_paused: false,
+                        status: 'active',
+                        game_started_at: sys?.game_started_at || Date.now(),
+                        paused_at: null,
+                        countdown_started_at: null,
+                        countdown_duration_ms: null,
+                    }).eq('key', 'game');
+
+                    if (error) return fail(500, error.message);
+
+                    await insertNotification('Game resumed by admin.');
+
+                    if (sys?.phase === 'phase2') {
+                        await enforceWagerEliminations();
+                    }
+                    await enrollAllEligibleTeams();
+                    const pairs = await autoMatchPairs();
+                    return ok({ pairs });
+                }
+
+                const nowMs = Date.now();
+                const countdownDurationMs = 10 * 1000;
+                const gameStartsAt = nowMs + countdownDurationMs;
                 const { error } = await supabaseAdmin.from('system').update({
-                    is_game_active: true,
+                    is_game_active: false,
                     is_paused: false,
-                    status: 'active',
-                    game_started_at: isResume ? (sys?.game_started_at || Date.now()) : Date.now(),
+                    status: 'starting',
+                    game_started_at: gameStartsAt,
                     paused_at: null,
+                    countdown_started_at: nowMs,
+                    countdown_duration_ms: countdownDurationMs,
                 }).eq('key', 'game');
 
                 if (error) return fail(500, error.message);
 
-                await insertNotification('Game started by admin.');
+                await insertNotification('Game countdown started by admin.');
+                return ok({ countdownStartedAt: nowMs, countdownDurationMs, gameStartedAt: gameStartsAt });
+            }
+
+            case 'activateStartedGame': {
+                const sys = await getGameSystem();
+                if (sys?.status !== 'starting') return ok({ pairs: [] });
+
+                const countdownStartedAt = Number(sys?.countdown_started_at || 0);
+                const countdownDurationMs = Number(sys?.countdown_duration_ms || 0);
+                const gameStartsAt = Number(sys?.game_started_at || (countdownStartedAt + countdownDurationMs) || Date.now());
+                const remainingMs = gameStartsAt - Date.now();
+                if (remainingMs > 0) return ok({ remainingMs });
+
+                const { error } = await supabaseAdmin.from('system').update({
+                    is_game_active: true,
+                    is_paused: false,
+                    status: 'active',
+                    game_started_at: gameStartsAt,
+                    paused_at: null,
+                    countdown_started_at: null,
+                    countdown_duration_ms: null,
+                }).eq('key', 'game');
+
+                if (error) return fail(500, error.message);
 
                 if (sys?.phase === 'phase2') {
                     await enforceWagerEliminations();
                 }
                 await enrollAllEligibleTeams();
-                await autoMatchPairs();
-                return ok();
+                const pairs = await autoMatchPairs();
+                await insertNotification('Game started by admin.');
+                return ok({ pairs });
             }
 
             case 'stopGame': {
@@ -560,6 +642,8 @@ serve(async (req) => {
                         phase: 'phase1',
                         game_started_at: null,
                         paused_at: null,
+                        countdown_started_at: null,
+                        countdown_duration_ms: null,
                         timeout_duration_override: null,
                         domains: DEFAULT_DOMAINS,
                         finale_state: null
@@ -664,7 +748,11 @@ serve(async (req) => {
             case 'deleteTeam': {
                 const teamId = payload?.id;
                 if (!teamId) return fail(400, 'Missing team id');
+                const team = await querySingle(
+                    supabaseAdmin.from('teams').select('name').eq('id', teamId).limit(1).maybeSingle()
+                );
                 await supabaseAdmin.from('teams').delete().eq('id', teamId);
+                if (team?.name) await insertNotification(`Admin deleted ${team.name}.`);
                 return ok();
             }
 
@@ -871,11 +959,8 @@ serve(async (req) => {
                     // Best-effort history.
                 }
 
-                await insertNotification(
-                    isWager && loserStatus === 'eliminated'
-                        ? `${winnerTeam.name} eliminated ${loserTeam.name}.`
-                        : `${winnerTeam.name} defeated ${loserTeam.name}.`
-                );
+                const outcomeMessage = `${winnerTeam.name} defeated ${loserTeam.name} in ${match.domain} domain.`;
+                await insertNotification(outcomeMessage);
 
                 try {
                     await supabaseAdmin.from('match_history').insert([
@@ -883,6 +968,8 @@ serve(async (req) => {
                             id: `mh_${matchId}`,
                             winner: winnerTeam.name,
                             loser: loserTeam.name,
+                            winner_id: winnerId,
+                            loser_id: loserId,
                             domain: match.domain,
                             timestamp: new Date().toISOString(),
                             is_wager: isWager,
@@ -895,6 +982,8 @@ serve(async (req) => {
                             id: `mh_${matchId}`,
                             winner: winnerTeam.name,
                             loser: loserTeam.name,
+                            winner_id: winnerId,
+                            loser_id: loserId,
                             domain: match.domain,
                             timestamp: new Date().toISOString(),
                             phase: system?.phase || 'phase1'

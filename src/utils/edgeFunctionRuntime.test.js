@@ -143,3 +143,46 @@ test('admin token adjustments keep queued token cache in sync', () => {
   assert.match(updateTokensBlock, /if \(teamUpdate\.error\) return fail\(500, teamUpdate\.error\.message\)/)
   assert.match(updateTokensBlock, /from\('matchmaking_queue'\)[\s\S]*\.update\(\{\s*team_tokens:\s*Math\.max\(0, newTokens\),\s*matched_with:\s*null\s*\}\)[\s\S]*\.eq\('team_id', teamId\)/)
 })
+
+test('player sessions update connection presence through login heartbeat and logout', () => {
+  const edgeFunction = readProjectFile('supabase/functions/game-actions/index.ts')
+  const loginBlock = getCaseBlock(edgeFunction, "case 'login':", "case 'heartbeat':")
+  const heartbeatBlock = getCaseBlock(edgeFunction, "case 'heartbeat':", "case 'logout':")
+  const logoutBlock = getCaseBlock(edgeFunction, "case 'logout':", "case 'joinQueue':")
+
+  assert.match(edgeFunction, /const playerActions = \[[^\]]*'heartbeat'[^\]]*'logout'[^\]]*\]/)
+  assert.match(loginBlock, /is_connected:\s*true,\s*last_seen_at:\s*Date\.now\(\)/)
+  assert.match(loginBlock, /insertNotification\(`\$\{team\.name\} entered the arena\.`\)/)
+  assert.match(heartbeatBlock, /is_connected:\s*true,\s*last_seen_at:\s*Date\.now\(\)/)
+  assert.match(logoutBlock, /is_connected:\s*false,\s*last_seen_at:\s*Date\.now\(\)/)
+})
+
+test('start game uses a server-authored countdown before enrollment and automatching', () => {
+  const edgeFunction = readProjectFile('supabase/functions/game-actions/index.ts')
+  const startGameBlock = getCaseBlock(edgeFunction, "case 'startGame':", "case 'activateStartedGame':")
+  const activateBlock = getCaseBlock(edgeFunction, "case 'activateStartedGame':", "case 'stopGame':")
+  const matchQueuedBlock = getCaseBlock(edgeFunction, 'const matchQueuedTeams = async', 'const autoMatchPairs = async')
+  const countdownBranch = startGameBlock.slice(startGameBlock.indexOf('const nowMs = Date.now();'))
+
+  assert.match(edgeFunction, /'activateStartedGame'/)
+  assert.match(startGameBlock, /const countdownDurationMs = 10 \* 1000/)
+  assert.match(startGameBlock, /const gameStartsAt = nowMs \+ countdownDurationMs/)
+  assert.match(startGameBlock, /status:\s*'starting'/)
+  assert.match(startGameBlock, /countdown_started_at:\s*nowMs/)
+  assert.match(startGameBlock, /countdown_duration_ms:\s*countdownDurationMs/)
+  assert.doesNotMatch(countdownBranch, /await enrollAllEligibleTeams\(\)/)
+  assert.doesNotMatch(countdownBranch, /await autoMatchPairs\(\)/)
+  assert.match(activateBlock, /await enrollAllEligibleTeams\(\)/)
+  assert.match(activateBlock, /const pairs = await autoMatchPairs\(\)/)
+  assert.match(matchQueuedBlock, /system\?\.status !== 'active'/)
+})
+
+test('winner declaration stores id-linked telemetry and required win log text', () => {
+  const edgeFunction = readProjectFile('supabase/functions/game-actions/index.ts')
+  const declareWinnerBlock = getCaseBlock(edgeFunction, "case 'declareWinner':", "case 'spinDomain':")
+
+  assert.match(declareWinnerBlock, /const outcomeMessage = `\$\{winnerTeam\.name\} defeated \$\{loserTeam\.name\} in \$\{match\.domain\} domain\.`/)
+  assert.match(declareWinnerBlock, /await insertNotification\(outcomeMessage\)/)
+  assert.match(declareWinnerBlock, /winner_id:\s*winnerId/)
+  assert.match(declareWinnerBlock, /loser_id:\s*loserId/)
+})

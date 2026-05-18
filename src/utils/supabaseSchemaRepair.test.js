@@ -15,3 +15,13 @@ test('Supabase SQL repairs existing queue team_id uniqueness for upserts', () =>
   assert.match(sql, /add constraint matchmaking_queue_team_id_key unique \(team_id\)/)
   assert.match(sql, /pg_constraint[\s\S]*matchmaking_queue[\s\S]*team_id/)
 })
+
+test('Supabase SQL includes presence and server countdown columns in public schema', () => {
+  const sql = readProjectFile('server/supabase_policies.sql')
+
+  assert.match(sql, /is_connected boolean not null default false/)
+  assert.match(sql, /last_seen_at bigint/)
+  assert.match(sql, /countdown_started_at bigint/)
+  assert.match(sql, /countdown_duration_ms bigint/)
+  assert.match(sql, /grant select \(id, name, member_names, leader, tokens, status, total_time, timeout_until, last_token_update_time, is_connected, last_seen_at, created_at\)/)
+})

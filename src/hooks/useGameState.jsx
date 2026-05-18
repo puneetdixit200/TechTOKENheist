@@ -8,7 +8,7 @@ import { buildReadyQueuePairs } from '../utils/matchmaking'
 import { buildPublicStateSnapshot, SAFE_TEAM_COLUMNS, toMillis } from '../utils/publicStateSnapshot'
 
 const createInitialGameState = () => ({
-  gameState: { isGameActive: false, isPaused: false, gameStartedAt: null, pausedAt: null, phase: 'phase1', status: 'not_started' },
+  gameState: { isGameActive: false, isPaused: false, gameStartedAt: null, pausedAt: null, countdownStartedAt: null, countdownDurationMs: null, phase: 'phase1', status: 'not_started' },
   teams: [],
   matchmakingQueue: [],
   activeMatches: [],
@@ -163,7 +163,7 @@ const useGameStateStore = create(
 
                   // Auto-logout on invalid session token
                   if (errorMessage === 'Invalid session token' || error.status === 401) {
-                    get().logout();
+                    get().logout({ remote: false });
                   }
 
                   // Check if it's a retryable error (network, 5xx)
@@ -183,7 +183,7 @@ const useGameStateStore = create(
                 if (data && !data.success) {
                   console.error(`[ADMIN ACTION FAILED] ${act}:`, data.error)
                   if (data.error === 'Invalid session token') {
-                    get().logout();
+                    get().logout({ remote: false });
                   }
                   return { success: false, error: data.error }
                 }
@@ -242,11 +242,24 @@ const useGameStateStore = create(
           return { success: true, role: 'player', teamId, teamName };
         }
       },
-      logout: () => set({ user: null }),
+      logout: async (options) => {
+        const shouldNotifyServer = options?.remote !== false
+        const currentUser = get().user
+        if (shouldNotifyServer && currentUser?.role === 'player' && currentUser.teamId) {
+          try {
+            await get()._invoke('logout', { teamId: currentUser.teamId })
+          } catch (err) {
+            console.warn('Remote logout failed:', err)
+          }
+        }
+        set({ user: null })
+      },
+      heartbeat: async () => get()._invoke('heartbeat', { teamId: resolveMyTeam(get())?.id || get().user?.teamId }),
       joinQueue: async () => get()._invoke('joinQueue', { teamId: resolveMyTeam(get())?.id }),
       leaveQueue: async () => get()._invoke('leaveQueue', { teamId: resolveMyTeam(get())?.id }),
       enrollAllEligible: async () => get()._invoke('enrollAllEligible'),
       startGame: async () => get()._invoke('startGame'),
+      activateStartedGame: async () => get()._invoke('activateStartedGame'),
       stopGame: async () => get()._invoke('stopGame'),
       resetGame: async () => get()._invoke('resetGame'),
       togglePhase: async () => get()._invoke('togglePhase'),
@@ -282,7 +295,8 @@ const useGameSocketBridge = () => {
   const socketUser = useGameStateStore((state) => state.user)
   const socketTeams = useGameStateStore((state) => state.teams)
   const setGameTimer = useGameStateStore((state) => state.setGameTimer)
-  const { isGameActive, isPaused, gameStartedAt, pausedAt } = gameState
+  const setCountdown = useGameStateStore((state) => state.setCountdown)
+  const { isGameActive, isPaused, gameStartedAt, pausedAt, countdownStartedAt, countdownDurationMs, status } = gameState
 
   useEffect(() => {
     let channel = null
@@ -424,6 +438,43 @@ const useGameSocketBridge = () => {
     }
   }, [isGameActive, isPaused, gameStartedAt, pausedAt, setGameTimer])
 
+  useEffect(() => {
+    if (countdownInterval) clearInterval(countdownInterval)
+    countdownInterval = null
+
+    if (status !== 'starting' || !countdownStartedAt || !countdownDurationMs) {
+      setCountdown(null)
+      return undefined
+    }
+
+    let activationRunning = false
+    const targetTime = Number(gameStartedAt || (Number(countdownStartedAt) + Number(countdownDurationMs)))
+
+    const tick = () => {
+      const remainingMs = targetTime - Date.now()
+      if (remainingMs > 0) {
+        setCountdown(Math.max(1, Math.ceil(remainingMs / 1000)))
+        return
+      }
+
+      setCountdown(null)
+      if (socketUser?.role === 'admin' && !activationRunning) {
+        activationRunning = true
+        useGameStateStore.getState().activateStartedGame().finally(() => {
+          activationRunning = false
+        })
+      }
+    }
+
+    tick()
+    countdownInterval = setInterval(tick, 250)
+
+    return () => {
+      if (countdownInterval) clearInterval(countdownInterval)
+      countdownInterval = null
+    }
+  }, [status, countdownStartedAt, countdownDurationMs, gameStartedAt, socketUser?.role, setCountdown])
+
   // Real-time timeout recovery interval
   // Use 5s interval (was 1s) to avoid hammering edge functions with concurrent calls
   useEffect(() => {
@@ -433,7 +484,7 @@ const useGameSocketBridge = () => {
       const state = useGameStateStore.getState()
       const now = Date.now()
 
-      if (!state.gameState.isGameActive || state.gameState.isPaused || state.gameState.phase === 'phase2') return
+      if (!state.gameState.isGameActive || state.gameState.isPaused || state.gameState.status !== 'active' || state.gameState.phase === 'phase2') return
 
       const myTeam = resolveMyTeam(state)
       const userRole = state.user?.role
@@ -466,7 +517,7 @@ const useGameSocketBridge = () => {
     const matchmakingInterval = setInterval(async () => {
       if (matchmakingRunning) return // Skip if previous matchmaking call is still running
       const state = useGameStateStore.getState()
-      if (state.gameState.isGameActive && !state.gameState.isPaused) {
+      if (state.gameState.isGameActive && !state.gameState.isPaused && state.gameState.status === 'active') {
         matchmakingRunning = true
         await state.autoMatchPairs().finally(() => { matchmakingRunning = false })
       }
@@ -483,7 +534,7 @@ const useGameSocketBridge = () => {
     const autoEnrollInterval = setInterval(async () => {
       if (enrollRunning) return // Skip if previous enroll call is still running
       const state = useGameStateStore.getState()
-      if (!state.gameState.isGameActive || state.gameState.isPaused) return
+      if (!state.gameState.isGameActive || state.gameState.isPaused || state.gameState.status !== 'active') return
 
       const myTeam = resolveMyTeam(state)
       if (!myTeam) return
@@ -511,11 +562,30 @@ const useGameSocketBridge = () => {
     return () => clearInterval(autoEnrollInterval)
   }, [socketUser?.role])
 
+  useEffect(() => {
+    if (socketUser?.role !== 'player' || !socketUser?.teamId) return undefined
+
+    let heartbeatRunning = false
+    const sendHeartbeat = async () => {
+      if (heartbeatRunning) return
+      heartbeatRunning = true
+      await useGameStateStore.getState().heartbeat().finally(() => {
+        heartbeatRunning = false
+      })
+    }
+
+    sendHeartbeat()
+    const heartbeatInterval = setInterval(sendHeartbeat, 30000)
+
+    return () => clearInterval(heartbeatInterval)
+  }, [socketUser?.role, socketUser?.teamId])
+
   // Safety net: in wager mode, any team at 0 tokens is force-eliminated.
   useEffect(() => {
     const shouldEnforce =
       gameState.isGameActive &&
       !gameState.isPaused &&
+      gameState.status === 'active' &&
       gameState.phase === 'phase2' &&
       socketUser?.role === 'admin' &&
       (socketTeams || []).some((team) => (team.tokens ?? 0) <= 0 && team.status !== 'eliminated')
@@ -525,7 +595,7 @@ const useGameSocketBridge = () => {
     enforceWagerEliminations().then(() => {
       useGameStateStore.getState().triggerFetchPublicState?.()
     })
-  }, [gameState.isGameActive, gameState.isPaused, gameState.phase, socketUser?.role, socketTeams])
+  }, [gameState.isGameActive, gameState.isPaused, gameState.status, gameState.phase, socketUser?.role, socketTeams])
 
   // Session Validation: Automatically logout players if their team is deleted (Reset)
   const { user, teams, logout } = useGameStateStore();

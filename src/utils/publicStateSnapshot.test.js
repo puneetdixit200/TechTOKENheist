@@ -80,3 +80,68 @@ test('public state snapshot releases queued orphan fighters from stale fighting 
   assert.equal(activeOne.status, 'fighting')
   assert.equal(snapshot.activeMatches[0].teamA.status, 'fighting')
 })
+
+test('public state snapshot exposes presence and server countdown state', () => {
+  const countdownStartedAt = 1_777_100_000_000
+  const snapshot = buildPublicStateSnapshot({
+    systemRows: [
+      {
+        key: 'game',
+        status: 'starting',
+        is_game_active: false,
+        is_paused: false,
+        phase: 'phase1',
+        game_started_at: String(countdownStartedAt + 10_000),
+        countdown_started_at: String(countdownStartedAt),
+        countdown_duration_ms: 10_000,
+      },
+    ],
+    teamsRows: [
+      {
+        id: 'team-a',
+        name: 'Berlin',
+        member_names: ['Leader A'],
+        leader: 'Leader A',
+        tokens: 1,
+        status: 'idle',
+        is_connected: true,
+        last_seen_at: String(countdownStartedAt + 250),
+      },
+    ],
+  })
+
+  assert.equal(snapshot.gameState.status, 'starting')
+  assert.equal(snapshot.gameState.gameStartedAt, countdownStartedAt + 10_000)
+  assert.equal(snapshot.gameState.countdownStartedAt, countdownStartedAt)
+  assert.equal(snapshot.gameState.countdownDurationMs, 10_000)
+  assert.equal(snapshot.teams[0].isConnected, true)
+  assert.equal(snapshot.teams[0].lastSeenAt, countdownStartedAt + 250)
+})
+
+test('public state snapshot keeps match history ids for player telemetry', () => {
+  const snapshot = buildPublicStateSnapshot({
+    systemRows: [
+      { key: 'game', status: 'active', is_game_active: true, is_paused: false, phase: 'phase1' },
+    ],
+    teamsRows: [
+      { id: 'team-a', name: 'Berlin', member_names: ['Leader A'], tokens: 2, status: 'idle' },
+      { id: 'team-b', name: 'Denver', member_names: ['Leader B'], tokens: 1, status: 'idle' },
+    ],
+    historyRows: [
+      {
+        id: 'match-history-1',
+        winner: 'Old Berlin',
+        loser: 'Old Denver',
+        winner_id: 'team-a',
+        loser_id: 'team-b',
+        domain: 'Tech Quiz',
+        timestamp: '2026-05-18T10:00:00.000Z',
+      },
+    ],
+  })
+
+  assert.equal(snapshot.matchHistory[0].winner, 'Berlin')
+  assert.equal(snapshot.matchHistory[0].loser, 'Denver')
+  assert.equal(snapshot.matchHistory[0].winnerId, 'team-a')
+  assert.equal(snapshot.matchHistory[0].loserId, 'team-b')
+})

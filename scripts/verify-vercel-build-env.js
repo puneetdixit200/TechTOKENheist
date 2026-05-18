@@ -48,6 +48,19 @@ const verifyProductionSupabaseSchema = async () => {
   })
   assertNoSupabaseError(teamLogin, 'login_team RPC')
 
+  const teamPresenceColumns = await supabase
+    .from('teams')
+    .select('id,is_connected,last_seen_at')
+    .limit(1)
+  assertNoSupabaseError(teamPresenceColumns, 'team presence columns')
+
+  const countdownColumns = await supabase
+    .from('system')
+    .select('countdown_started_at,countdown_duration_ms')
+    .eq('key', 'game')
+    .maybeSingle()
+  assertNoSupabaseError(countdownColumns, 'system countdown columns')
+
   const adminLogin = await supabase.rpc('login_admin_session', {
     p_username: '__vercel_build_probe__',
     p_password: '__invalid__',

@@ -6,7 +6,7 @@ const corsHeaders = {
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const SAFE_TEAM_COLUMNS = 'id, name, member_names, leader, tokens, status, total_time, timeout_until, last_token_update_time, created_at';
+const SAFE_TEAM_COLUMNS = 'id, name, member_names, leader, tokens, status, total_time, timeout_until, last_token_update_time, is_connected, last_seen_at, created_at';
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), {
     status,

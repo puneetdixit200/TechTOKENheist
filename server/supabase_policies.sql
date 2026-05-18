@@ -22,6 +22,8 @@ create table if not exists public.teams (
   total_time bigint not null default 0,
   timeout_until bigint,
   last_token_update_time bigint,
+  is_connected boolean not null default false,
+  last_seen_at bigint,
   created_at timestamptz not null default now()
 );
 
@@ -83,6 +85,8 @@ create table if not exists public.system (
   phase text not null default 'phase1',
   game_started_at bigint,
   paused_at bigint,
+  countdown_started_at bigint,
+  countdown_duration_ms bigint,
   timeout_duration_override bigint,
   domains text[] not null default array['Tech Pitch', 'Tech Quiz', 'Guess Output', 'Frontend Dev', 'Feature Addition'],
   finale_state jsonb
@@ -102,6 +106,8 @@ alter table public.teams add column if not exists status text not null default '
 alter table public.teams add column if not exists total_time bigint not null default 0;
 alter table public.teams add column if not exists timeout_until bigint;
 alter table public.teams add column if not exists last_token_update_time bigint;
+alter table public.teams add column if not exists is_connected boolean not null default false;
+alter table public.teams add column if not exists last_seen_at bigint;
 alter table public.teams add column if not exists created_at timestamptz not null default now();
 
 alter table public.matchmaking_queue add column if not exists team_id uuid;
@@ -182,6 +188,8 @@ alter table public.system add column if not exists is_paused boolean not null de
 alter table public.system add column if not exists phase text not null default 'phase1';
 alter table public.system add column if not exists game_started_at bigint;
 alter table public.system add column if not exists paused_at bigint;
+alter table public.system add column if not exists countdown_started_at bigint;
+alter table public.system add column if not exists countdown_duration_ms bigint;
 alter table public.system add column if not exists timeout_duration_override bigint;
 alter table public.system add column if not exists domains text[] not null default array['Tech Pitch', 'Tech Quiz', 'Guess Output', 'Frontend Dev', 'Feature Addition'];
 alter table public.system add column if not exists finale_state jsonb;
@@ -353,6 +361,11 @@ begin
   if team_row.id is null then
     return jsonb_build_object('success', false, 'error', 'Invalid credentials');
   end if;
+
+  update public.teams
+  set is_connected = true,
+      last_seen_at = floor(extract(epoch from clock_timestamp()) * 1000)::bigint
+  where id = team_row.id;
 
   return jsonb_build_object(
     'success', true,
@@ -570,7 +583,7 @@ begin
   values (winner_row.name, loser_row.name, winner_row.id, loser_row.id, match_row.domain, p_timestamp, is_wager_match);
 
   insert into public.notifications (message, "time")
-  values (winner_row.name || ' defeated ' || loser_row.name, p_timestamp);
+  values (winner_row.name || ' defeated ' || loser_row.name || ' in ' || match_row.domain || ' domain', p_timestamp);
 
   insert into public.token_history (team, change, reason, "timestamp")
   values
@@ -785,7 +798,7 @@ using (false);
 revoke all on all tables in schema public from anon, authenticated;
 revoke all on private.admin_sessions from anon, authenticated;
 
-grant select (id, name, member_names, leader, tokens, status, total_time, timeout_until, last_token_update_time, created_at)
+grant select (id, name, member_names, leader, tokens, status, total_time, timeout_until, last_token_update_time, is_connected, last_seen_at, created_at)
 on public.teams to anon, authenticated;
 grant insert, update, delete on public.teams to anon, authenticated;
 

@@ -222,6 +222,24 @@ const createReadOnlySupabaseRouteHandler = () => {
       return
     }
 
+    if (url.pathname === '/functions/v1/public-state') {
+      await jsonFulfill(route, 200, {
+        systemRows: rows.system,
+        teamsRows: rows.teams,
+        queueRows: rows.matchmaking_queue,
+        matchRows: rows.active_matches,
+        historyRows: rows.match_history,
+        notificationRows: rows.notifications,
+        tokenHistory: rows.token_history,
+      })
+      return
+    }
+
+    if (url.pathname === '/functions/v1/game-actions') {
+      await jsonFulfill(route, 200, { success: true, data: {} })
+      return
+    }
+
     if (!url.pathname.startsWith('/rest/v1/')) {
       await jsonFulfill(route, 200, {})
       return

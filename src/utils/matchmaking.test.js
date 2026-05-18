@@ -5,6 +5,7 @@ import {
   buildConstraintsFromHistory,
   buildQueuePairsFromEntries,
   buildQueueDiagnostics,
+  buildTeamMatchmakingDiagnostics,
   buildReadyQueuePairs,
   calculateMatchOutcome,
   chooseDomainForMatch,
@@ -646,6 +647,29 @@ test('buildQueueDiagnostics marks stale ineligible queue rows as blocked', () =>
   assert.match(alphaDiagnostics.blockers.find((blocker) => blocker.teamId === 'bravo').reasons.join('\n'), /Bravo is not eligible while timeout/)
   assert.match(alphaDiagnostics.blockers.find((blocker) => blocker.teamId === 'bravo').reasons.join('\n'), /Bravo has no tokens/)
   assert.match(alphaDiagnostics.blockers.find((blocker) => blocker.teamId === 'charlie').reasons.join('\n'), /Charlie is not eligible while eliminated/)
+})
+
+test('buildTeamMatchmakingDiagnostics lists every other team with clear block reasons', () => {
+  const diagnostics = buildTeamMatchmakingDiagnostics({
+    gameState: { phase: 'phase1', domains: ['Tech Pitch', 'Tech Quiz'] },
+    subjectTeamId: 'alpha',
+    teams: [
+      { id: 'alpha', name: 'Alpha', tokens: 2, status: 'idle' },
+      { id: 'bravo', name: 'Bravo', tokens: 4, status: 'idle' },
+      { id: 'charlie', name: 'Charlie', tokens: 8, status: 'idle' },
+      { id: 'delta', name: 'Delta', tokens: 1, status: 'fighting' },
+    ],
+    matchConstraints: {},
+    activeMatches: [
+      { id: 'match-1', team_a: 'delta', team_b: 'echo' },
+    ],
+  })
+
+  assert.equal(diagnostics.length, 3)
+  assert.equal(diagnostics.find((entry) => entry.teamId === 'bravo').canMatchNow, true)
+  assert.deepEqual(diagnostics.find((entry) => entry.teamId === 'bravo').reasons, [])
+  assert.match(diagnostics.find((entry) => entry.teamId === 'charlie').reasons[0], /Token gap too high/)
+  assert.match(diagnostics.find((entry) => entry.teamId === 'delta').reasons[0], /not eligible while fighting/)
 })
 
 test('getValidDomains falls back to default domains when stored domains are empty', () => {
