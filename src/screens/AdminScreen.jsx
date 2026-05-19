@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useGameState } from '../hooks/useGameState';
 import { hasSupabaseConfig } from '../lib/supabase';
 import {
@@ -135,7 +135,7 @@ const AdminScreen = () => {
   const [visiblePasswords, setVisiblePasswords] = useState(new Set());
   const [passwordsLoaded, setPasswordsLoaded] = useState(false);
 
-  const fetchTeamPasswords = async () => {
+  const fetchTeamPasswords = useCallback(async () => {
     const res = await getTeamPasswords();
     if (res?.success && res.data?.passwords) {
       const pwMap = {};
@@ -143,11 +143,14 @@ const AdminScreen = () => {
       setTeamPasswords(pwMap);
       setPasswordsLoaded(true);
     }
-  };
+  }, [getTeamPasswords]);
 
   useEffect(() => {
-    fetchTeamPasswords();
-  }, [teams.length]);
+    const timeoutId = setTimeout(() => {
+      fetchTeamPasswords();
+    }, 0);
+    return () => clearTimeout(timeoutId);
+  }, [fetchTeamPasswords, teams.length]);
 
   const togglePasswordVisibility = (teamId) => {
     setVisiblePasswords((prev) => {
