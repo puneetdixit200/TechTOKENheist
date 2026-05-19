@@ -145,3 +145,30 @@ test('public state snapshot keeps match history ids for player telemetry', () =>
   assert.equal(snapshot.matchHistory[0].winnerId, 'team-a')
   assert.equal(snapshot.matchHistory[0].loserId, 'team-b')
 })
+
+test('active match team snapshots use current team token and status rows', () => {
+  const snapshot = buildPublicStateSnapshot({
+    teamsRows: [
+      { id: 'team-a', name: 'Berlin', member_names: ['Leader A'], tokens: 4, status: 'fighting' },
+      { id: 'team-b', name: 'Denver', member_names: ['Leader B'], tokens: 0, status: 'timeout' },
+    ],
+    matchRows: [
+      {
+        id: 'match-1',
+        team_a: 'team-a',
+        team_b: 'team-b',
+        domain: 'Tech Quiz',
+        start_time: 1_777_000_000_000,
+        teamA: { id: 'team-a', name: 'Berlin', tokens: 1, status: 'fighting', password: 'stale-secret-a' },
+        teamB: { id: 'team-b', name: 'Denver', tokens: 1, status: 'fighting', password: 'stale-secret-b' },
+      },
+    ],
+  })
+
+  assert.equal(snapshot.activeMatches[0].teamA.tokens, 4)
+  assert.equal(snapshot.activeMatches[0].teamA.status, 'fighting')
+  assert.equal(snapshot.activeMatches[0].teamB.tokens, 0)
+  assert.equal(snapshot.activeMatches[0].teamB.status, 'timeout')
+  assert.equal(snapshot.activeMatches[0].teamA.password, undefined)
+  assert.equal(snapshot.activeMatches[0].teamB.password, undefined)
+})

@@ -106,8 +106,8 @@ const normalizeRuntimeTeamRow = (team, activeTeamIds, queueByTeamId) => {
 const normalizeActiveMatch = (match, teamById) => {
   const teamAId = match?.team_a || match?.teamA?.id
   const teamBId = match?.team_b || match?.teamB?.id
-  const teamA = match?.teamA || (teamAId ? teamById[teamAId] : null) || fallbackTeam(teamAId)
-  const teamB = match?.teamB || (teamBId ? teamById[teamBId] : null) || fallbackTeam(teamBId)
+  const teamA = (teamAId ? teamById[teamAId] : null) || match?.teamA || fallbackTeam(teamAId)
+  const teamB = (teamBId ? teamById[teamBId] : null) || match?.teamB || fallbackTeam(teamBId)
   const startTime = toMillis(match?.start_time || match?.startTime)
 
   return {

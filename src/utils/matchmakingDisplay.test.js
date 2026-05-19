@@ -125,6 +125,19 @@ test('player lobby telemetry uses player-scoped match history formatter', () => 
   assert.doesNotMatch(lobbyScreen, /MISSION FAILURE: NEUTRALIZED BY/)
 })
 
+test('arena live match cards show operation timers and live token counts', () => {
+  const arenaScreen = readProjectFile('src/screens/ArenaScreen.jsx')
+  const liveMatchesBlock = arenaScreen.slice(
+    arenaScreen.indexOf('{activeMatches.map(match => ('),
+    arenaScreen.indexOf('{activeMatches.length === 0', arenaScreen.indexOf('{activeMatches.map(match => (')),
+  )
+
+  assert.match(arenaScreen, /const MatchTimer = \(\{ startTime \}\) =>/)
+  assert.match(liveMatchesBlock, /<MatchTimer startTime=\{match\.startTime\} \/>/)
+  assert.match(liveMatchesBlock, /\{match\.teamA\.tokens\}[\s\S]*TKN/)
+  assert.match(liveMatchesBlock, /\{match\.teamB\.tokens\}[\s\S]*TKN/)
+})
+
 test('finale screen avoids emoji glyph alignment and exposes music controls before victory', () => {
   const finaleOverlay = readProjectFile('src/components/FinaleOverlay.jsx')
   const finaleCss = readProjectFile('src/components/FinaleOverlay.css')

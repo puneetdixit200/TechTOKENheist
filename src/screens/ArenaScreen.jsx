@@ -5,6 +5,26 @@ import { Swords, Crosshair, Ban, Lock, Zap, Search, Timer, ShieldAlert, AlertCir
 import { buildQueueDiagnostics, buildTeamMatchmakingDiagnostics } from '../utils/matchmaking';
 import { buildIntelFeedLogs, buildTelemetryLogs } from '../utils/eventLogs';
 
+const MatchTimer = ({ startTime }) => {
+  const [display, setDisplay] = React.useState('0:00');
+
+  React.useEffect(() => {
+    const startedAt = Number(startTime) || Date.now();
+    const tick = () => {
+      const ms = Math.max(0, Date.now() - startedAt);
+      const mins = Math.floor(ms / 60000);
+      const secs = Math.floor((ms % 60000) / 1000);
+      setDisplay(`${mins}:${String(secs).padStart(2, '0')}`);
+    };
+
+    tick();
+    const iv = setInterval(tick, 1000);
+    return () => clearInterval(iv);
+  }, [startTime]);
+
+  return <span className="heist-mono text-[10px] text-heist-yellow tracking-widest tabular-nums">{display}</span>;
+};
+
 const ArenaScreen = () => {
   const { teams, activeMatches, myTeam, gameState, isInQueue, myQueueEntry, matchmakingQueue, matchConstraints, matchHistory, notifications } = useGameState();
   const amIEliminated = myTeam && myTeam.status === 'eliminated';
@@ -300,20 +320,28 @@ const ArenaScreen = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {activeMatches.map(match => (
               <div key={match.id} className="heist-card bg-black/60 border-white/5 hover:border-red-600/30 transition-all p-6 group">
-                <div className="flex justify-between items-center mb-6">
-                  <span className="heist-badge badge-gray text-[8px]">{match.domain}</span>
-                  <span className={`heist-badge ${match.isWager ? 'badge-red' : 'badge-teal'} text-[8px]`}>
-                    {match.isWager ? 'WAGER' : 'STANDARD'}
-                  </span>
+                <div className="flex justify-between items-start mb-6 gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="heist-badge badge-gray text-[8px]">{match.domain}</span>
+                    <span className={`heist-badge ${match.isWager ? 'badge-red' : 'badge-teal'} text-[8px]`}>
+                      {match.isWager ? 'WAGER' : 'STANDARD'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0 border border-white/10 bg-black/50 px-2 py-1">
+                    <Timer size={12} className="text-gray-500" />
+                    <MatchTimer startTime={match.startTime} />
+                  </div>
                 </div>
                 <div className="flex items-center justify-between text-center gap-4">
                   <div className="flex flex-col items-center flex-1 min-w-0">
                     <div className="heist-font text-xl text-white truncate w-full tracking-widest">{match.teamA.name}</div>
+                    <div className="heist-font text-heist-yellow text-lg tracking-widest mt-1">{match.teamA.tokens} TKN</div>
                     <div className="heist-mono text-[8px] text-gray-600 mt-1 uppercase">ASSAULT</div>
                   </div>
                   <div className="heist-font text-red-600 text-xl font-bold group-hover:scale-125 transition-transform">VS</div>
                   <div className="flex flex-col items-center flex-1 min-w-0">
                     <div className="heist-font text-xl text-white truncate w-full tracking-widest">{match.teamB.name}</div>
+                    <div className="heist-font text-heist-yellow text-lg tracking-widest mt-1">{match.teamB.tokens} TKN</div>
                     <div className="heist-mono text-[8px] text-gray-600 mt-1 uppercase">DEFENSE</div>
                   </div>
                 </div>
