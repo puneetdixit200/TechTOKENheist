@@ -7,6 +7,7 @@ import {
     getValidDomains,
     runMatchmaking,
 } from "../_shared/matchmaking.ts";
+import { TEAM_SEED_DATA, buildSeedPasswordMap } from "../_shared/teamSeedData.ts";
 
 import * as jose from "https://deno.land/x/jose@v4.14.4/index.ts";
 const JWT_SECRET = new TextEncoder().encode(Deno.env.get('JWT_SECRET') || 'tokenheist-super-secret-jwt-key-2026');
@@ -373,7 +374,7 @@ serve(async (req) => {
         }
     }
 
-    const adminActions = ['enrollAllEligible', 'startGame', 'activateStartedGame', 'stopGame', 'resetGame', 'togglePhase', 'createTeam', 'editTeam', 'deleteTeam', 'updateTokens', 'recoverFromTimeout', 'createMatch', 'declareWinner', 'spinDomain', 'updateDomains', 'setTimeoutDuration', 'rematchQueue', 'autoMatchPairs', 'endMatchAndStartFinale', 'setFinaleDomain', 'declareFinaleRoundWinner', 'endFinale', 'enforceWagerEliminations'];
+    const adminActions = ['enrollAllEligible', 'startGame', 'activateStartedGame', 'stopGame', 'resetGame', 'togglePhase', 'createTeam', 'editTeam', 'deleteTeam', 'updateTokens', 'recoverFromTimeout', 'createMatch', 'declareWinner', 'spinDomain', 'updateDomains', 'setTimeoutDuration', 'rematchQueue', 'autoMatchPairs', 'endMatchAndStartFinale', 'setFinaleDomain', 'declareFinaleRoundWinner', 'endFinale', 'enforceWagerEliminations', 'seedAllTeams', 'getTeamPasswords'];
     const playerActions = ['heartbeat', 'logout', 'joinQueue', 'leaveQueue'];
 
     if (adminActions.includes(action) && userRole !== 'admin') {
@@ -635,16 +636,26 @@ serve(async (req) => {
                     const { error: err5 } = await supabaseAdmin.from('token_history').delete().neq('id', '00000000-0000-0000-0000-000000000000');
                     if (err5) { console.error('Error in step 5:', err5); throw new Error(`Token history deletion failed: ${err5.message}`); }
 
-                    console.log('6. Resetting teams...');
-                    const resetPassword = await hashPassword(DEFAULT_TEAM_PASSWORD);
-                    const { error: teamError } = await supabaseAdmin.from('teams').update({
-                        tokens: 1,
-                        status: 'idle',
-                        timeout_until: null,
-                        last_token_update_time: null,
-                        password: resetPassword,
-                    }).neq('id', '00000000-0000-0000-0000-000000000000');
-                    if (teamError) { console.error('Error in step 6:', teamError); throw teamError; }
+                    console.log('6. Resetting teams (preserving passwords)...');
+                    // Preserve original seed passwords — look up each team's password from seed data
+                    const seedPasswordMap = buildSeedPasswordMap();
+                    const allTeamsForReset = await queryList(
+                        supabaseAdmin.from('teams').select('id, name, password')
+                    );
+                    for (const team of allTeamsForReset) {
+                        const seedPwd = seedPasswordMap.get((team.name || '').toLowerCase());
+                        const preservedPassword = seedPwd || team.password || DEFAULT_TEAM_PASSWORD;
+                        const { error: teamUpdateErr } = await supabaseAdmin.from('teams').update({
+                            tokens: 1,
+                            status: 'idle',
+                            timeout_until: null,
+                            last_token_update_time: null,
+                            is_connected: false,
+                            last_seen_at: null,
+                            password: preservedPassword,
+                        }).eq('id', team.id);
+                        if (teamUpdateErr) { console.error(`Error resetting team ${team.name}:`, teamUpdateErr); }
+                    }
 
                     console.log('7. Resetting system...');
                     const { error: systemError } = await supabaseAdmin.from('system').update({
@@ -1265,6 +1276,50 @@ serve(async (req) => {
             case 'enforceWagerEliminations': {
                 const eliminated = await enforceWagerEliminations();
                 return ok({ eliminated });
+            }
+
+            case 'seedAllTeams': {
+                // Bulk-create all 28 pre-registered teams with their seed passwords
+                const results = [];
+                for (const seed of TEAM_SEED_DATA) {
+                    const existing = await querySingle(
+                        supabaseAdmin.from('teams').select('id, name').ilike('name', seed.character).limit(1).maybeSingle()
+                    );
+
+                    const teamPayload = {
+                        name: seed.character,
+                        member_names: seed.members,
+                        leader: seed.leader,
+                        password: seed.password,
+                        tokens: 1,
+                        status: 'idle',
+                    };
+
+                    if (existing?.id) {
+                        await supabaseAdmin.from('teams').update(teamPayload).eq('id', existing.id);
+                        results.push({ character: seed.character, action: 'updated', id: existing.id });
+                    } else {
+                        const inserted = await querySingle(
+                            supabaseAdmin.from('teams').insert([teamPayload]).select().maybeSingle()
+                        );
+                        results.push({ character: seed.character, action: 'created', id: inserted?.id });
+                    }
+                }
+                await insertNotification(`Admin seeded ${results.length} teams into the arena.`);
+                return ok({ teams: results });
+            }
+
+            case 'getTeamPasswords': {
+                // Admin-only: return all team names and their passwords
+                const allTeams = await queryList(
+                    supabaseAdmin.from('teams').select('id, name, password').order('name', { ascending: true })
+                );
+                const passwords = (allTeams || []).map((t: any) => ({
+                    id: t.id,
+                    name: t.name,
+                    password: t.password || DEFAULT_TEAM_PASSWORD,
+                }));
+                return ok({ passwords });
             }
 
             default:
