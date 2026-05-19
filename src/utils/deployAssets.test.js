@@ -30,6 +30,23 @@ const collectTextFiles = (directory) => {
   return files
 }
 
+test('Vercel config applies hardened headers to all app routes', () => {
+  const vercelConfig = JSON.parse(readProjectFile('vercel.json'))
+  const globalHeaders = vercelConfig.headers.find((entry) => entry.source === '/(.*)')?.headers || []
+  const headerByKey = new Map(globalHeaders.map((header) => [header.key.toLowerCase(), header.value]))
+  const csp = headerByKey.get('content-security-policy') || ''
+
+  assert.equal(headerByKey.get('x-content-type-options'), 'nosniff')
+  assert.equal(headerByKey.get('x-frame-options'), 'DENY')
+  assert.equal(headerByKey.get('referrer-policy'), 'strict-origin-when-cross-origin')
+  assert.match(headerByKey.get('permissions-policy') || '', /camera=\(\), microphone=\(\), geolocation=\(\)/)
+  assert.match(csp, /default-src 'self'/)
+  assert.match(csp, /connect-src[^;]*https:\/\/\*\.supabase\.co/)
+  assert.match(csp, /connect-src[^;]*wss:\/\/\*\.supabase\.co/)
+  assert.match(csp, /object-src 'none'/)
+  assert.match(csp, /frame-ancestors 'none'/)
+})
+
 test('production build prunes unused copied public assets', () => {
   const packageJson = JSON.parse(readProjectFile('package.json'))
   const pruneScript = readProjectFile('scripts/prune-dist-public.js')
