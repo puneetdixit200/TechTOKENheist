@@ -373,11 +373,20 @@ const declare_match_winner = (state, body) => {
   const loser = state.teams.find((team) => team.id === loserId)
   if (!winner || !loser) return null
 
-  winner.tokens = (winner.tokens ?? 1) + 1
+  const isWager = Boolean(match.is_wager || state.system.phase === 'phase2')
+  const startingWinnerTokens = winner.tokens ?? 1
+  const startingLoserTokens = loser.tokens ?? 1
+  if (isWager) {
+    const tokenSwing = Math.floor((startingWinnerTokens + startingLoserTokens) / 2)
+    winner.tokens = startingWinnerTokens + tokenSwing
+    loser.tokens = Math.max(0, startingLoserTokens - tokenSwing)
+  } else {
+    winner.tokens = startingWinnerTokens + 1
+    loser.tokens = Math.max(0, startingLoserTokens - 1)
+  }
   winner.status = 'idle'
   winner.timeout_until = null
-  loser.tokens = Math.max(0, (loser.tokens ?? 1) - 1)
-  loser.status = loser.tokens === 0 ? 'timeout' : 'idle'
+  loser.status = loser.tokens === 0 ? (isWager ? 'eliminated' : 'timeout') : 'idle'
   loser.timeout_until = loser.status === 'timeout' ? Date.now() + 5 * 60 * 1000 : null
 
   state.match_history.push({
@@ -388,7 +397,7 @@ const declare_match_winner = (state, body) => {
     loser: loser.name,
     domain: match.domain,
     timestamp: body?.p_timestamp || new Date().toLocaleTimeString(),
-    is_wager: Boolean(match.is_wager),
+    is_wager: isWager,
     created_at: new Date().toISOString(),
   })
   state.notifications.push({
@@ -401,15 +410,15 @@ const declare_match_winner = (state, body) => {
     {
       id: `smoke-token-${state.ids.tokenHistory++}`,
       team: winner.name,
-      change: '+1',
-      reason: 'Match win',
+      change: `+${winner.tokens - startingWinnerTokens}`,
+      reason: isWager ? 'Wager win' : 'Match win',
       timestamp: body?.p_timestamp || new Date().toLocaleTimeString(),
     },
     {
       id: `smoke-token-${state.ids.tokenHistory++}`,
       team: loser.name,
-      change: '-1',
-      reason: 'Match loss',
+      change: `${loser.tokens - startingLoserTokens}`,
+      reason: isWager ? 'Wager loss' : 'Match loss',
       timestamp: body?.p_timestamp || new Date().toLocaleTimeString(),
     },
   )
@@ -427,7 +436,7 @@ const declare_match_winner = (state, body) => {
     winnerTokens: winner.tokens,
     loserTokens: loser.tokens,
     loserStatus: loser.status,
-    isWager: false,
+    isWager,
   }
 }
 

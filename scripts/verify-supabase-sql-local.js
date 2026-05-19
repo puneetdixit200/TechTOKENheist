@@ -493,7 +493,7 @@ const verify = () => {
     select tokens::text || ':' || status
     from public.teams
     where id = ${sqlLiteral(teamCId)}::uuid;
-  `, '4:idle', 'phase transition winner wager state')
+  `, '5:idle', 'phase transition winner wager state')
 
   assertScalar(`
     set role anon;

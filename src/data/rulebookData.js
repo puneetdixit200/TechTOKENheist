@@ -81,18 +81,18 @@ export const rulebookPhase2 = [
   },
   {
     key: 'higher-wins',
-    title: 'Higher Token Team Wins',
-    body: 'The winner takes ALL of the loser\'s tokens. The loser drops to 0 and is permanently eliminated.'
+    title: 'Token Transfer Formula',
+    body: 'Winner gains floor((winner tokens + loser tokens) / 2). Loser loses that same amount, floored at 0.'
   },
   {
     key: 'lower-wins',
-    title: 'Lower Token Team Wins',
-    body: 'The winner receives ⌊(A+B)/2⌋ tokens total. The loser keeps the remainder.'
+    title: 'Underdog Wins',
+    body: 'Example: 2 beats 10, transfer is floor((2 + 10) / 2) = 6. Winner becomes 8, loser remains 4.'
   },
   {
     key: 'equal-wins',
-    title: 'Equal Tokens',
-    body: 'Winner takes all tokens from both pools. Loser drops to 0 and is permanently eliminated.'
+    title: 'Zero Token Elimination',
+    body: 'If the loser reaches 0 after the wager transfer, that team is permanently eliminated.'
   }
 ];
 

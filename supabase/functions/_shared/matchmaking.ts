@@ -261,21 +261,11 @@ export function getTimeoutDuration({ gameState }) {
 export function calculateWagerOutcome(winnerTeam, loserTeam) {
     const wTokens = winnerTeam.tokens ?? 1;
     const lTokens = loserTeam.tokens ?? 1;
-
-    if (wTokens >= lTokens) {
-        return {
-            winnerTokens: wTokens + lTokens,
-            loserTokens: 0,
-            loserStatus: 'eliminated',
-        };
-    }
-
-    const mean = Math.floor((wTokens + lTokens) / 2);
-    const winnerTokens = wTokens + mean;
-    const loserTokens = lTokens - mean;
+    const tokenSwing = Math.floor((wTokens + lTokens) / 2);
+    const loserTokens = Math.max(0, lTokens - tokenSwing);
     return {
-        winnerTokens,
-        loserTokens: Math.max(0, loserTokens),
+        winnerTokens: wTokens + tokenSwing,
+        loserTokens,
         loserStatus: loserTokens <= 0 ? 'eliminated' : 'idle',
     };
 }

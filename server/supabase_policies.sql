@@ -508,6 +508,11 @@ declare
   is_wager_match boolean;
   winner_tokens integer;
   loser_tokens integer;
+  token_swing integer;
+  now_ms bigint;
+  timeout_override bigint;
+  game_started_at bigint;
+  timeout_ms bigint;
 begin
   if not public.valid_admin_session() then
     raise exception 'valid admin session required';
@@ -534,48 +539,56 @@ begin
     raise exception 'winner or loser team not found';
   end if;
 
-  select coalesce(phase, 'phase1') into phase_value
+  select coalesce(phase, 'phase1'), timeout_duration_override, game_started_at
+  into phase_value, timeout_override, game_started_at
   from public.system
   where key = 'game';
 
   is_wager_match := coalesce(match_row.is_wager, false) or phase_value = 'phase2';
+  now_ms := floor(extract(epoch from clock_timestamp()) * 1000)::bigint;
 
   if is_wager_match then
-    winner_tokens := coalesce(winner_row.tokens, 0) + coalesce(loser_row.tokens, 0);
-    loser_tokens := 0;
+    token_swing := floor((coalesce(winner_row.tokens, 0) + coalesce(loser_row.tokens, 0)) / 2);
+    winner_tokens := coalesce(winner_row.tokens, 0) + token_swing;
+    loser_tokens := greatest(0, coalesce(loser_row.tokens, 0) - token_swing);
 
     update public.teams
     set tokens = winner_tokens,
         status = 'idle',
         timeout_until = null,
-        last_token_update_time = floor(extract(epoch from clock_timestamp()) * 1000)::bigint
+        last_token_update_time = now_ms
     where id = winner_row.id;
 
     update public.teams
-    set tokens = 0,
-        status = 'eliminated',
+    set tokens = loser_tokens,
+        status = case when loser_tokens = 0 then 'eliminated' else 'idle' end,
         timeout_until = null,
-        last_token_update_time = floor(extract(epoch from clock_timestamp()) * 1000)::bigint
+        last_token_update_time = now_ms
     where id = loser_row.id;
   else
     winner_tokens := coalesce(winner_row.tokens, 0) + 1;
     loser_tokens := greatest(0, coalesce(loser_row.tokens, 0) - 1);
+    timeout_ms := case
+      when coalesce(timeout_override, 0) > 0 then timeout_override
+      when game_started_at is not null and (now_ms - game_started_at) <= 1800000 then 300000
+      else 900000
+    end;
 
     update public.teams
     set tokens = winner_tokens,
         status = 'idle',
         timeout_until = null,
-        last_token_update_time = floor(extract(epoch from clock_timestamp()) * 1000)::bigint
+        last_token_update_time = now_ms
     where id = winner_row.id;
 
     update public.teams
     set tokens = loser_tokens,
         status = case when loser_tokens = 0 then 'timeout' else 'idle' end,
         timeout_until = case
-          when loser_tokens = 0 then floor(extract(epoch from clock_timestamp()) * 1000)::bigint + 300000
+          when loser_tokens = 0 then now_ms + timeout_ms
           else null
         end,
-        last_token_update_time = floor(extract(epoch from clock_timestamp()) * 1000)::bigint
+        last_token_update_time = now_ms
     where id = loser_row.id;
   end if;
 
@@ -609,7 +622,7 @@ begin
     'loserId', loser_row.id,
     'winnerTokens', winner_tokens,
     'loserTokens', loser_tokens,
-    'loserStatus', case when is_wager_match then 'eliminated' when loser_tokens = 0 then 'timeout' else 'idle' end,
+    'loserStatus', case when is_wager_match and loser_tokens = 0 then 'eliminated' when loser_tokens = 0 then 'timeout' else 'idle' end,
     'isWager', is_wager_match
   );
 end;

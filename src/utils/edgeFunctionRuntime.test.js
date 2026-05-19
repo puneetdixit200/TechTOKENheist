@@ -86,6 +86,32 @@ test('active matches use current wager phase when declaring a winner', () => {
   assert.match(declareWinnerBlock, /reason: isWager \? 'Wager win' : 'Match win'/)
 })
 
+test('edge wager outcome uses the floored combined-token transfer rule', () => {
+  const sharedMatchmaking = readProjectFile('supabase/functions/_shared/matchmaking.ts')
+  const start = sharedMatchmaking.indexOf('export function calculateWagerOutcome')
+  assert.notEqual(start, -1, 'calculateWagerOutcome block missing')
+  const wagerOutcomeBlock = sharedMatchmaking.slice(start)
+
+  assert.match(wagerOutcomeBlock, /const tokenSwing = Math\.floor\(\(wTokens \+ lTokens\) \/ 2\)/)
+  assert.match(wagerOutcomeBlock, /winnerTokens:\s*wTokens \+ tokenSwing/)
+  assert.match(wagerOutcomeBlock, /const loserTokens = Math\.max\(0, lTokens - tokenSwing\)/)
+  assert.match(wagerOutcomeBlock, /loserStatus:\s*loserTokens <= 0 \? 'eliminated' : 'idle'/)
+  assert.doesNotMatch(wagerOutcomeBlock, /if \(wTokens >= lTokens\)/)
+})
+
+test('timeout recovery refuses to reset before the stored deadline', () => {
+  const edgeFunction = readProjectFile('supabase/functions/game-actions/index.ts')
+  const recoverBlock = getCaseBlock(edgeFunction, "case 'recoverFromTimeout':", "case 'createMatch':")
+
+  assert.match(recoverBlock, /select\('status, name, timeout_until'\)/)
+  assert.match(recoverBlock, /const nowMs = Date\.now\(\)/)
+  assert.match(recoverBlock, /const timeoutUntil = Number\(team\?\.timeout_until \?\? 0\)/)
+  assert.match(recoverBlock, /if \(!Number\.isFinite\(timeoutUntil\) \|\| timeoutUntil <= 0\)/)
+  assert.match(recoverBlock, /repairedTimeoutUntil = nowMs \+ resolveTimeoutMs\(system, nowMs\)/)
+  assert.match(recoverBlock, /if \(timeoutUntil > nowMs\) \{\s*return ok\(\{\s*recovered:\s*false,\s*remainingMs:\s*timeoutUntil - nowMs\s*\}\)/)
+  assert.match(recoverBlock, /update\(\{\s*tokens:\s*1,\s*status:\s*'idle',\s*timeout_until:\s*null,\s*last_token_update_time:\s*nowMs\s*\}\)/)
+})
+
 test('winner declaration claims the active match before editing guarded team rows', () => {
   const edgeFunction = readProjectFile('supabase/functions/game-actions/index.ts')
   const declareWinnerBlock = getCaseBlock(edgeFunction, "case 'declareWinner':", "case 'spinDomain':")

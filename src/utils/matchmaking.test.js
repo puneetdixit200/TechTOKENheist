@@ -799,12 +799,22 @@ test('match outcome uses wager rules when the stored match or current phase is w
   assert.equal(isWagerMatch(phaseOneMatch, { phase: 'phase2' }), true)
   assert.deepEqual(
     calculateMatchOutcome({ winnerTeam, loserTeam, isWager: isWagerMatch(phaseOneMatch, { phase: 'phase2' }) }),
-    { winnerTokens: 4, loserTokens: 0, loserStatus: 'eliminated' }
+    { winnerTokens: 5, loserTokens: 0, loserStatus: 'eliminated' }
   )
 
   assert.equal(isWagerMatch(wagerMatch, { phase: 'phase1' }), true)
   assert.deepEqual(
     calculateMatchOutcome({ winnerTeam, loserTeam, isWager: isWagerMatch(wagerMatch, { phase: 'phase1' }) }),
-    { winnerTokens: 4, loserTokens: 0, loserStatus: 'eliminated' }
+    { winnerTokens: 5, loserTokens: 0, loserStatus: 'eliminated' }
+  )
+
+  assert.deepEqual(
+    calculateMatchOutcome({ winnerTeam: { tokens: 2 }, loserTeam: { tokens: 10 }, isWager: true }),
+    { winnerTokens: 8, loserTokens: 4, loserStatus: 'idle' }
+  )
+
+  assert.deepEqual(
+    calculateMatchOutcome({ winnerTeam: { tokens: 10 }, loserTeam: { tokens: 2 }, isWager: true }),
+    { winnerTokens: 16, loserTokens: 0, loserStatus: 'eliminated' }
   )
 })

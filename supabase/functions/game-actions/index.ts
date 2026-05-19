@@ -831,13 +831,29 @@ serve(async (req) => {
                 if (!teamId) return fail(400, 'Missing teamId');
 
                 const team = await querySingle(
-                    supabaseAdmin.from('teams').select('status').eq('id', teamId).limit(1).maybeSingle()
+                    supabaseAdmin.from('teams').select('status, name, timeout_until').eq('id', teamId).limit(1).maybeSingle()
                 );
                 if (team?.status !== 'timeout') return ok();
 
+                const nowMs = Date.now();
+                const timeoutUntil = Number(team?.timeout_until ?? 0);
+                if (!Number.isFinite(timeoutUntil) || timeoutUntil <= 0) {
+                    const system = await getGameSystem();
+                    const repairedTimeoutUntil = nowMs + resolveTimeoutMs(system, nowMs);
+                    await supabaseAdmin
+                        .from('teams')
+                        .update({ timeout_until: repairedTimeoutUntil })
+                        .eq('id', teamId);
+                    return ok({ recovered: false, repairedTimeoutUntil });
+                }
+
+                if (timeoutUntil > nowMs) {
+                    return ok({ recovered: false, remainingMs: timeoutUntil - nowMs });
+                }
+
                 await supabaseAdmin
                     .from('teams')
-                    .update({ tokens: 1, status: 'idle', timeout_until: null, last_token_update_time: Date.now() })
+                    .update({ tokens: 1, status: 'idle', timeout_until: null, last_token_update_time: nowMs })
                     .eq('id', teamId);
 
                 const inQueue = await querySingle(
@@ -846,9 +862,9 @@ serve(async (req) => {
                 if (!inQueue) {
                     await supabaseAdmin
                         .from('matchmaking_queue')
-                        .insert([{ team_id: teamId, team_name: teamName, team_tokens: 1 }]);
+                        .insert([{ team_id: teamId, team_name: teamName || team?.name || '', team_tokens: 1 }]);
                 }
-                return ok();
+                return ok({ recovered: true });
             }
 
             case 'createMatch': {
