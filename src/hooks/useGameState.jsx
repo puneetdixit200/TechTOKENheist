@@ -491,11 +491,11 @@ const useGameSocketBridge = () => {
       const myTeam = resolveMyTeam(state)
       const userRole = state.user?.role
 
-      if (myTeam && myTeam.status === 'timeout' && myTeam.timeoutUntil && myTeam.timeoutUntil <= now) {
+      if (myTeam && myTeam.status === 'timeout' && (!myTeam.timeoutUntil || myTeam.timeoutUntil <= now)) {
         recoveryRunning = true
         await state.recoverFromTimeout(myTeam.id, myTeam.name).finally(() => { recoveryRunning = false })
       } else if (userRole === 'admin') {
-        const expired = state.teams.filter(t => t.status === 'timeout' && t.timeoutUntil && t.timeoutUntil <= now)
+        const expired = state.teams.filter(t => t.status === 'timeout' && (!t.timeoutUntil || t.timeoutUntil <= now))
         if (expired.length > 0) {
           recoveryRunning = true
           // Recover one at a time sequentially to avoid flooding the queue

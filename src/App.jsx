@@ -186,8 +186,8 @@ const PlayerSidebar = () => {
     { path: '/arena', label: 'ARENA', icon: Swords, requiresGameStart: true },
     { path: '/battle', label: 'BATTLE', icon: Crosshair, requiresGameStart: true },
     { path: '/rulebook', label: 'THE PLAN', icon: Book, requiresGameStart: true },
-    { path: '/about', label: 'ABOUT', icon: Eye },
-    { path: '/devs', label: 'DEVELOPERS', icon: Users },
+    { path: '/about', label: 'DEVELOPERS', icon: Users },
+    { path: '/devs', label: 'ABOUT', icon: Eye },
   ];
 
   return (
@@ -332,6 +332,37 @@ const PlayerRoute = ({ children }) => {
   return <PlayerLayout>{children}</PlayerLayout>;
 };
 
+const AboutRoute = () => {
+  const { user } = useGameState();
+
+  if (isPlayerUser(user)) {
+    return (
+      <PlayerRoute>
+        <DevsScreen />
+      </PlayerRoute>
+    );
+  }
+
+  return (
+    <div className="player-layout-container flex flex-col h-screen overflow-hidden">
+      <div className="flex items-center justify-between px-8 h-[70px] bg-black/90 border-b border-white/10 relative z-50">
+        <Link to="/" className="flex items-center gap-2 heist-mono text-xs tracking-widest text-gray-400 hover:text-white uppercase transition-colors">
+          ← Back to Dossier
+        </Link>
+        <div className="flex items-center gap-2 opacity-60">
+          <img src={gdgLogo} alt="GDG" className="h-5 w-auto object-contain brightness-0 invert" />
+          <span className="heist-mono text-[9px] tracking-tighter text-white">RVITM</span>
+        </div>
+      </div>
+      <div className="player-content-wrapper">
+        <div className="player-content-container">
+          <DevsScreen />
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const AdminRoute = ({ children }) => {
   const { user } = useGameState();
 
@@ -386,11 +417,9 @@ const AppContent = () => {
           <Route path="/rulebook" element={
             <PlayerRoute><RulebookScreen /></PlayerRoute>
           } />
-          <Route path="/about" element={
-            <PlayerRoute><AboutScreen /></PlayerRoute>
-          } />
+          <Route path="/about" element={<AboutRoute />} />
           <Route path="/devs" element={
-            <PlayerRoute><DevsScreen /></PlayerRoute>
+            <PlayerRoute><AboutScreen /></PlayerRoute>
           } />
 
           {/* Admin Routes */}

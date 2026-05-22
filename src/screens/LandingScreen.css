@@ -2194,3 +2194,48 @@ html.landing-scroll-mode {
   .finale-tokyo::before { height: 13vh; }
   .finale-tokyo::after { top: 0; height: auto; }
 }
+
+/* Meet Devs Floating Button */
+.meet-devs-floating-btn {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(10, 10, 10, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  padding: 0.6rem 1rem;
+  font-family: var(--landing-mono);
+  font-size: 0.75rem;
+  font-weight: bold;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+}
+
+.meet-devs-floating-btn:hover {
+  background: var(--heist-red);
+  border-color: var(--heist-red);
+  color: #fff;
+  box-shadow: 0 0 15px var(--heist-red-glow);
+  transform: translateY(-2px);
+}
+
+.meet-devs-floating-btn:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 768px) {
+  .meet-devs-floating-btn {
+    top: 1rem;
+    right: 1rem;
+    padding: 0.5rem 0.8rem;
+    font-size: 0.7rem;
+  }
+}

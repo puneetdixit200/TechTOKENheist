@@ -9,6 +9,7 @@ import berlinlImg from '../../assets/icons/berlinl.png';
 import songMp3 from '../assets/song.mp3';
 import { motion } from 'framer-motion';
 import gdgLogo from '../../assets/gdg.png';
+import { Users } from 'lucide-react';
 
 const TOKEN_BURST = [
   { id: 'alpha', x: -31, y: -24, size: 64, delay: 0.1, duration: 6.8, drift: -26, spin: -240, scale: 0.92 },
@@ -215,6 +216,15 @@ const LandingScreen = () => {
       }}
     >
       <audio ref={audioRef} src={songMp3} loop />
+
+      <button
+        onClick={() => navigate('/about')}
+        className="meet-devs-floating-btn"
+        title="Meet the Developers"
+      >
+        <Users size={16} />
+        <span className="meet-devs-btn-text">MEET DEVS</span>
+      </button>
 
       {/* 0. PRELUDE — SILENCE */}
       {!started && (

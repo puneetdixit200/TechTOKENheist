@@ -354,7 +354,7 @@ const routeChecks = [
     name: 'about-configured',
     route: '/about',
     viewport: { width: 1366, height: 768 },
-    text: 'RVITM BENGALURU',
+    text: 'THE ARCHITECTS',
     storageValue: createPersistedAuth({
       role: 'player',
       teamId: CONFIGURED_TEAM_ID,
@@ -365,7 +365,7 @@ const routeChecks = [
     name: 'devs-configured',
     route: '/devs',
     viewport: { width: 1366, height: 768 },
-    text: 'THE ARCHITECTS',
+    text: 'RVITM BENGALURU',
     storageValue: createPersistedAuth({
       role: 'player',
       teamId: CONFIGURED_TEAM_ID,

@@ -23,7 +23,7 @@ const TimeoutCountdown = ({ until }) => {
   const [display, setDisplay] = React.useState('');
   React.useEffect(() => {
     const tick = () => {
-      const left = Math.max(0, until - Date.now());
+      const left = until && Number.isFinite(until) ? Math.max(0, until - Date.now()) : 0;
       const m = Math.floor(left / 60000);
       const s = Math.floor((left % 60000) / 1000);
       setDisplay(`${m}:${String(s).padStart(2, '0')}`);

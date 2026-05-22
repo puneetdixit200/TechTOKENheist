@@ -177,9 +177,9 @@ const enforceWagerEliminations = async () => {
 };
 
 const resolveTimeoutMs = (system, nowMs = Date.now()) => {
-    if (system?.timeout_duration_override) return system.timeout_duration_override;
+    if (system?.timeout_duration_override) return Number(system.timeout_duration_override);
     if (system?.game_started_at) {
-        const elapsed = nowMs - system.game_started_at;
+        const elapsed = nowMs - Number(system.game_started_at);
         return elapsed <= 30 * 60 * 1000 ? 5 * 60 * 1000 : 15 * 60 * 1000;
     }
     return 5 * 60 * 1000;
@@ -960,8 +960,8 @@ serve(async (req) => {
 
                 let timeoutMs = null;
                 if (loserStatus === 'timeout') {
-                    const gameStartedAt = system?.game_started_at;
-                    const override = system?.timeout_duration_override;
+                    const gameStartedAt = system?.game_started_at ? Number(system.game_started_at) : null;
+                    const override = system?.timeout_duration_override ? Number(system.timeout_duration_override) : null;
                     if (override) {
                         timeoutMs = override;
                     } else if (gameStartedAt) {
