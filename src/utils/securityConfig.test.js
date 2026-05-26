@@ -7,6 +7,48 @@ const readProjectFile = (relativePath) => fs.readFileSync(
   'utf8'
 )
 
+const getCaseBlock = (source, startCase, endCase) => {
+  const start = source.indexOf(startCase)
+  const end = source.indexOf(endCase, start)
+  assert.notEqual(start, -1, `${startCase} block missing`)
+  assert.notEqual(end, -1, `${endCase} block missing`)
+  return source.slice(start, end)
+}
+
+test('team seed data omits checked-in credentials', async () => {
+  const clientSeedDataSource = readProjectFile('src/data/teamSeedData.js')
+  const edgeSeedDataSource = readProjectFile('supabase/functions/_shared/teamSeedData.ts')
+  const productionEnvExample = readProjectFile('.env.production.local.example')
+  const { TEAM_SEED_DATA } = await import(new URL('../data/teamSeedData.js', import.meta.url))
+
+  assert.ok(TEAM_SEED_DATA.length > 0)
+  for (const team of TEAM_SEED_DATA) {
+    assert.equal(Object.hasOwn(team, 'password'), false)
+  }
+  assert.doesNotMatch(clientSeedDataSource, /\bpassword\s*:/)
+  assert.doesNotMatch(edgeSeedDataSource, /password:\s*'[^']+'/)
+  assert.doesNotMatch(edgeSeedDataSource, /permanent passwords/)
+  assert.match(edgeSeedDataSource, /TEAM_SEED_PASSWORDS_JSON/)
+  assert.match(productionEnvExample, /TEAM_SEED_PASSWORDS_JSON/)
+})
+
+test('edge team actions do not assign a shared fallback password', () => {
+  const edgeFunction = readProjectFile('supabase/functions/game-actions/index.ts')
+  const resetGameBlock = getCaseBlock(edgeFunction, "case 'resetGame':", "case 'togglePhase':")
+  const createTeamBlock = getCaseBlock(edgeFunction, "case 'createTeam':", "case 'editTeam':")
+  const seedAllTeamsBlock = getCaseBlock(edgeFunction, "case 'seedAllTeams':", "case 'getTeamPasswords':")
+  const getTeamPasswordsBlock = getCaseBlock(edgeFunction, "case 'getTeamPasswords':", 'default:')
+
+  assert.doesNotMatch(edgeFunction, /DEFAULT_TEAM_PASSWORD/)
+  assert.match(createTeamBlock, /Missing team password/)
+  assert.doesNotMatch(createTeamBlock, /payload\?\.password\s*\|\|/)
+  assert.doesNotMatch(resetGameBlock, /DEFAULT_TEAM_PASSWORD/)
+  assert.match(seedAllTeamsBlock, /Missing TEAM_SEED_PASSWORDS_JSON entries/)
+  assert.match(seedAllTeamsBlock, /buildSeedPasswordMap\(\)/)
+  assert.doesNotMatch(seedAllTeamsBlock, /seed\.password/)
+  assert.match(getTeamPasswordsBlock, /password:\s*t\.password \|\| ''/)
+})
+
 test('client login uses RPC and does not select password columns directly', () => {
   const useGameState = readProjectFile('src/hooks/useGameState.jsx')
   const supabaseClient = readProjectFile('src/lib/supabase.js')

@@ -17,7 +17,6 @@ const corsHeaders = {
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-game-token',
 };
 
-const DEFAULT_TEAM_PASSWORD = 'abcd';
 const FINALE_TOTAL_ROUNDS = 5;
 const DEFAULT_DOMAINS = ['Tech Pitch', 'Tech Quiz', 'Guess Output', 'Frontend Dev', 'Feature Addition'];
 const DEFAULT_SYSTEM_ROW = {
@@ -65,7 +64,7 @@ const verifyPassword = async (password, stored) => {
 };
 
 const hashPassword = async (password) => {
-    return password ?? DEFAULT_TEAM_PASSWORD;
+    return password ?? '';
 };
 
 const ensureGameSystem = async () => {
@@ -637,23 +636,24 @@ serve(async (req) => {
                     if (err5) { console.error('Error in step 5:', err5); throw new Error(`Token history deletion failed: ${err5.message}`); }
 
                     console.log('6. Resetting teams (preserving passwords)...');
-                    // Preserve original seed passwords — look up each team's password from seed data
+                    // Preserve configured seed passwords when available.
                     const seedPasswordMap = buildSeedPasswordMap();
                     const allTeamsForReset = await queryList(
                         supabaseAdmin.from('teams').select('id, name, password')
                     );
                     for (const team of allTeamsForReset) {
                         const seedPwd = seedPasswordMap.get((team.name || '').toLowerCase());
-                        const preservedPassword = seedPwd || team.password || DEFAULT_TEAM_PASSWORD;
-                        const { error: teamUpdateErr } = await supabaseAdmin.from('teams').update({
+                        const preservedPassword = seedPwd || team.password || '';
+                        const resetPayload = {
                             tokens: 1,
                             status: 'idle',
                             timeout_until: null,
                             last_token_update_time: null,
                             is_connected: false,
                             last_seen_at: null,
-                            password: preservedPassword,
-                        }).eq('id', team.id);
+                            ...(preservedPassword ? { password: preservedPassword } : {}),
+                        };
+                        const { error: teamUpdateErr } = await supabaseAdmin.from('teams').update(resetPayload).eq('id', team.id);
                         if (teamUpdateErr) { console.error(`Error resetting team ${team.name}:`, teamUpdateErr); }
                     }
 
@@ -707,7 +707,9 @@ serve(async (req) => {
                 if (!name) return fail(400, 'Missing team name');
                 if (isLikePattern(name)) return fail(400, 'Invalid team name');
 
-                const passwordHash = await hashPassword(payload?.password || DEFAULT_TEAM_PASSWORD);
+                const teamPassword = typeof payload?.password === 'string' ? payload.password.trim() : '';
+                if (!teamPassword) return fail(400, 'Missing team password');
+                const passwordHash = await hashPassword(teamPassword);
 
                 const existing = await querySingle(
                     supabaseAdmin.from('teams').select('id, name').ilike('name', name).limit(1).maybeSingle()
@@ -1295,9 +1297,20 @@ serve(async (req) => {
             }
 
             case 'seedAllTeams': {
-                // Bulk-create all 28 pre-registered teams with their seed passwords
+                // Bulk-create all 28 pre-registered teams with server-configured passwords.
+                const seedPasswordMap = buildSeedPasswordMap();
+                const missingPasswordSeeds = TEAM_SEED_DATA
+                    .filter((seed) => !seedPasswordMap.get(seed.character.toLowerCase()))
+                    .map((seed) => seed.character);
+                if (missingPasswordSeeds.length > 0) {
+                    const preview = missingPasswordSeeds.slice(0, 5).join(', ');
+                    const suffix = missingPasswordSeeds.length > 5 ? `, and ${missingPasswordSeeds.length - 5} more` : '';
+                    return fail(400, `Missing TEAM_SEED_PASSWORDS_JSON entries for: ${preview}${suffix}`);
+                }
+
                 const results = [];
                 for (const seed of TEAM_SEED_DATA) {
+                    const seedPassword = seedPasswordMap.get(seed.character.toLowerCase()) || '';
                     const existing = await querySingle(
                         supabaseAdmin.from('teams').select('id, name').ilike('name', seed.character).limit(1).maybeSingle()
                     );
@@ -1306,7 +1319,7 @@ serve(async (req) => {
                         name: seed.character,
                         member_names: seed.members,
                         leader: seed.leader,
-                        password: seed.password,
+                        password: seedPassword,
                         tokens: 1,
                         status: 'idle',
                     };
@@ -1333,7 +1346,7 @@ serve(async (req) => {
                 const passwords = (allTeams || []).map((t: any) => ({
                     id: t.id,
                     name: t.name,
-                    password: t.password || DEFAULT_TEAM_PASSWORD,
+                    password: t.password || '',
                 }));
                 return ok({ passwords });
             }

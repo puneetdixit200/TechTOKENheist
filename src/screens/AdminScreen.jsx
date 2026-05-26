@@ -632,7 +632,7 @@ const AdminScreen = () => {
                   className={`border border-heist-teal text-heist-teal px-4 py-2 heist-font text-sm tracking-wider hover:bg-heist-teal hover:text-black transition-colors flex items-center gap-2 ${actionInProgress ? 'opacity-50 cursor-wait' : ''}`}
                   onClick={() => setConfirmConfig({
                     title: 'SEED ALL TEAMS',
-                    message: 'This will create/update all 28 pre-registered teams with their assigned passwords. Proceed?',
+                    message: 'This will create/update all 28 pre-registered teams with server-configured passwords. Proceed?',
                     type: 'warning',
                     onConfirm: () => safeAction('seedAllTeams', async () => {
                       const res = await seedAllTeams();
