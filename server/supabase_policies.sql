@@ -511,7 +511,7 @@ declare
   token_swing integer;
   now_ms bigint;
   timeout_override bigint;
-  game_started_at bigint;
+  game_started_at_ms bigint;
   timeout_ms bigint;
 begin
   if not public.valid_admin_session() then
@@ -539,10 +539,10 @@ begin
     raise exception 'winner or loser team not found';
   end if;
 
-  select coalesce(phase, 'phase1'), timeout_duration_override, game_started_at
-  into phase_value, timeout_override, game_started_at
-  from public.system
-  where key = 'game';
+  select coalesce(s.phase, 'phase1'), s.timeout_duration_override, s.game_started_at
+  into phase_value, timeout_override, game_started_at_ms
+  from public.system s
+  where s.key = 'game';
 
   is_wager_match := coalesce(match_row.is_wager, false) or phase_value = 'phase2';
   now_ms := floor(extract(epoch from clock_timestamp()) * 1000)::bigint;
@@ -570,7 +570,7 @@ begin
     loser_tokens := greatest(0, coalesce(loser_row.tokens, 0) - 1);
     timeout_ms := case
       when coalesce(timeout_override, 0) > 0 then timeout_override
-      when game_started_at is not null and (now_ms - game_started_at) <= 1800000 then 300000
+      when game_started_at_ms is not null and (now_ms - game_started_at_ms) <= 1800000 then 300000
       else 900000
     end;
 
