@@ -141,6 +141,20 @@ test('Supabase SQL keeps password hashing, login RPCs, and credential checks in 
   assert.doesNotMatch(sql, /SET_BASE64_ADMIN_CREDENTIAL/)
 })
 
+test('declare_match_winner qualifies system columns that overlap local variables', () => {
+  const sql = readProjectFile('server/supabase_policies.sql')
+  const declareWinnerBlock = getCaseBlock(
+    sql,
+    'create or replace function public.declare_match_winner(',
+    'grant execute on function public.declare_match_winner'
+  )
+
+  assert.match(declareWinnerBlock, /from public\.system s/)
+  assert.match(declareWinnerBlock, /s\.game_started_at/)
+  assert.match(declareWinnerBlock, /game_started_at_ms/)
+  assert.doesNotMatch(declareWinnerBlock, /select coalesce\(phase, 'phase1'\), timeout_duration_override, game_started_at/)
+})
+
 test('Supabase verifier includes an optional live mutation probe', () => {
   const verifier = readProjectFile('scratch/test_supabase.js')
   const localSqlVerifier = readProjectFile('scripts/verify-supabase-sql-local.js')
