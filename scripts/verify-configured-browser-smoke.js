@@ -310,7 +310,7 @@ const routeChecks = [
     name: 'prestart-lobby-lock-configured',
     route: '/lobby',
     viewport: { width: 390, height: 844 },
-    text: 'RVITM BENGALURU',
+    text: 'THE ARCHITECTS',
     storageValue: createPersistedAuth({
       role: 'player',
       teamId: CONFIGURED_TEAM_ID,
@@ -321,7 +321,7 @@ const routeChecks = [
     name: 'prestart-arena-lock-configured',
     route: '/arena',
     viewport: { width: 1366, height: 768 },
-    text: 'RVITM BENGALURU',
+    text: 'THE ARCHITECTS',
     storageValue: createPersistedAuth({
       role: 'player',
       teamId: CONFIGURED_TEAM_ID,
@@ -332,7 +332,7 @@ const routeChecks = [
     name: 'prestart-battle-lock-configured',
     route: '/battle',
     viewport: { width: 1366, height: 768 },
-    text: 'RVITM BENGALURU',
+    text: 'THE ARCHITECTS',
     storageValue: createPersistedAuth({
       role: 'player',
       teamId: CONFIGURED_TEAM_ID,
@@ -343,7 +343,7 @@ const routeChecks = [
     name: 'prestart-rulebook-lock-configured',
     route: '/rulebook',
     viewport: { width: 1366, height: 768 },
-    text: 'RVITM BENGALURU',
+    text: 'THE ARCHITECTS',
     storageValue: createPersistedAuth({
       role: 'player',
       teamId: CONFIGURED_TEAM_ID,
